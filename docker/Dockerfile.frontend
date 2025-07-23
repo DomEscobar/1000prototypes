@@ -1,0 +1,39 @@
+# Frontend Dockerfile
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including dev dependencies for build)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Accept build arguments for environment variables
+ARG VITE_API_URL=http://localhost:3000
+ENV VITE_API_URL=$VITE_API_URL
+
+# Build the application with environment variables
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy built assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+
+# Copy and make startup script executable
+COPY docker/start-frontend.sh /start.sh
+RUN chmod +x /start.sh
+
+# Expose port (Railway will override this)
+EXPOSE 80
+
+# Start nginx with dynamic port
+CMD ["/start.sh"]

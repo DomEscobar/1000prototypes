@@ -1,0 +1,6 @@
+# Database files
+*.json
+
+# Keep directory but ignore all files except this gitignore
+*
+!.gitignore 
