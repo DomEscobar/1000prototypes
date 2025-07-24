@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { ProcessStep, Agent, PromptStep, normalizePrompts } from "@/lib/api";
+import { processHTMLForIframe } from "@/lib/utils";
 
 interface AgentCardProps {
   agent: Agent;
@@ -214,7 +215,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
               <div className="bg-background rounded-lg border border-border overflow-hidden shadow-card">
                 <iframe
                   key={iframeKey}
-                  srcDoc={preview}
+                  srcDoc={processHTMLForIframe(preview)}
                   className="w-full h-64 border-0 bg-background"
                   title={`${agent.name} Preview`}
                   sandbox="allow-scripts allow-same-origin"

@@ -7,6 +7,7 @@ import { Download, Copy, ExternalLink, Code, Eye, AlertTriangle, RefreshCw, Edit
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "@/lib/api";
+import { processHTMLForIframe } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { LogModal } from "./LogModal";
 
@@ -120,7 +121,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
 
   const handleOpenInNewTab = () => {
     if (agent?.output && isHTML) {
-      const blob = new Blob([html], { type: 'text/html' });
+      const blob = new Blob([processHTMLForIframe(html)], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
     } else {
@@ -278,7 +279,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
                 <Card className="p-0 overflow-hidden bg-white flex-1 max-w-[99vw]">
                   <iframe
                     key={iframeKey}
-                    srcDoc={html}
+                    srcDoc={processHTMLForIframe(html)}
                     className="w-full h-full min-h-[75vh] sm:h-[70vh] max-w-full border-0"
                     title={`${agent.name} Output`}
                     sandbox="allow-scripts allow-same-origin allow-popups"
