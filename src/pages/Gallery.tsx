@@ -15,7 +15,9 @@ import {
   FileText,
   Code2,
   Images as GalleryIcon,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { apiService, SavedOutput } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import Preview from "./Preview";
 
+const ITEMS_PER_PAGE = 6;
+
 const Gallery = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,6 +45,7 @@ const Gallery = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedPreviewId, setSelectedPreviewId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadSavedOutputs();
@@ -66,6 +71,11 @@ const Gallery = () => {
       document.body.style.overflow = 'unset';
     };
   }, [previewModalOpen]);
+
+  // Reset to first page when outputs change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [savedOutputs.length]);
 
   const loadSavedOutputs = async () => {
     try {
@@ -124,6 +134,60 @@ const Gallery = () => {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(savedOutputs.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentOutputs = savedOutputs.slice(startIndex, endIndex);
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
   };
 
   if (isLoading) {
@@ -217,6 +281,16 @@ const Gallery = () => {
                   <p className="text-sm text-muted-foreground">Total Saved Outputs</p>
                   <p className="text-2xl font-bold text-foreground">{savedOutputs.length}</p>
                 </div>
+                {savedOutputs.length > 0 && (
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1}-{Math.min(endIndex, savedOutputs.length)} of {savedOutputs.length}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -235,108 +309,163 @@ const Gallery = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {savedOutputs.map((output) => (
-              <Card 
-                key={output.id} 
-                className="bg-gradient-card border-border shadow-card hover:shadow-elegant transition-all duration-300 group"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg font-semibold text-foreground mb-2 truncate">
-                        {output.title}
-                      </CardTitle>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {currentOutputs.map((output) => (
+                <Card 
+                  key={output.id} 
+                  className="bg-gradient-card border-border shadow-card hover:shadow-elegant transition-all duration-300 group"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg font-semibold text-foreground mb-2 truncate">
+                          {output.title}
+                        </CardTitle>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {truncateText(output.userRequest)}
-                  </p>
-                  
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      <span className="truncate max-w-20">{output.agentName}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(output.createdAt)}</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs h-5 px-1.5">
-                      {output.model}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="pt-0">
-                  {/* Content Preview */}
-                  {output.isHTML ? (
-                    <div className="bg-white rounded-lg border mb-4 overflow-hidden">
-                      <iframe
-                        srcDoc={output.content}
-                        className="w-full h-64 border-0 pointer-events-none"
-                        title={`Preview of ${output.title}`}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-top-navigation allow-top-navigation-by-user-activation"
-                      />
-                    </div>
-                  ) : (
-                    <div className="bg-secondary/30 rounded-lg p-3 mb-4">
-                      <pre className="text-xs text-foreground whitespace-pre-wrap break-words overflow-hidden">
-                        {truncateText(output.content, 150)}
-                      </pre>
-                    </div>
-                  )}
-                  
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleView(output.id)}
-                      size="sm"
-                      className="flex-1 bg-gradient-primary hover:opacity-90"
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={deletingId === output.id}
-                          className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                        >
-                          {deletingId === output.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete saved output?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete "{output.title}" and cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDelete(output.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {truncateText(output.userRequest)}
+                    </p>
+                    
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        <span className="truncate max-w-20">{output.agentName}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDate(output.createdAt)}</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs h-5 px-1.5">
+                        {output.model}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="pt-0">
+                    {/* Content Preview */}
+                    {output.isHTML ? (
+                      <div className="bg-white rounded-lg border mb-4 overflow-hidden">
+                        <iframe
+                          srcDoc={output.content}
+                          className="w-full h-64 border-0 pointer-events-none"
+                          title={`Preview of ${output.title}`}
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-top-navigation allow-top-navigation-by-user-activation"
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-secondary/30 rounded-lg p-3 mb-4">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap break-words overflow-hidden">
+                          {truncateText(output.content, 150)}
+                        </pre>
+                      </div>
+                    )}
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => handleView(output.id)}
+                        size="sm"
+                        className="flex-1 bg-gradient-primary hover:opacity-90"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={deletingId === output.id}
+                            className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                            {deletingId === output.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete saved output?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{output.title}" and cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(output.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, index) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${index}`} className="px-2 py-1 text-muted-foreground">
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageClick(page as number)}
+                          className={`w-8 h-8 p-0 ${
+                            currentPage === page 
+                              ? "bg-gradient-primary text-primary-foreground" 
+                              : ""
+                          }`}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Preview Modal */}

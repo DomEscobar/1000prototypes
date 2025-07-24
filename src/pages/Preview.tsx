@@ -116,40 +116,11 @@ const Preview = ({ previewId, isModal = false, onClose }: PreviewProps) => {
         content: newContent
       };
       
-      // Update local state immediately for responsive UI
       setSavedOutput(updatedOutput);
       
       // Refresh iframe if it's an HTML file
       if (savedOutput.isHTML) {
         setIframeKey(prev => prev + 1);
-      }
-
-      // Save to database in the background
-      try {
-        await apiService.updateSavedOutput(savedOutput.id, {
-          title: updatedOutput.title,
-          content: newContent,
-          agentId: updatedOutput.agentId,
-          agentName: updatedOutput.agentName,
-          userRequest: updatedOutput.userRequest,
-          isHTML: updatedOutput.isHTML,
-          model: updatedOutput.model || 'gemini-2.0-flash'
-        });
-        
-        // Only show toast for successful saves occasionally to avoid spam
-        if (Math.random() < 0.3) {
-          toast({
-            title: "Changes saved",
-            description: "Your updates have been saved automatically.",
-          });
-        }
-      } catch (error) {
-        console.error('Failed to save updates:', error);
-        toast({
-          title: "Save failed",
-          description: "Failed to save changes to database. Your edits are preserved locally.",
-          variant: "destructive"
-        });
       }
     }
   };

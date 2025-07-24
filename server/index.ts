@@ -41,6 +41,33 @@ interface ProcessStep {
   response: string;
   thinking?: string;
   characterCount: number;
+  model?: string; // Track which model was used for this step
+}
+
+// Enhanced prompt interface to support per-prompt models
+interface PromptStep {
+  content: string;
+  model?: string; // Optional model override for this specific prompt
+}
+
+// Helper functions to work with both prompt formats
+function normalizePrompts(prompts: (string | PromptStep)[]): PromptStep[] {
+  return prompts.map(prompt => 
+    typeof prompt === 'string' ? { content: prompt } : prompt
+  );
+}
+
+function getPromptContent(prompts: (string | PromptStep)[], index: number): string {
+  const prompt = prompts[index];
+  return typeof prompt === 'string' ? prompt : prompt.content;
+}
+
+function getPromptModel(prompts: (string | PromptStep)[], index: number, defaultModel: string): string {
+  const prompt = prompts[index];
+  if (typeof prompt === 'string') {
+    return defaultModel;
+  }
+  return prompt.model || defaultModel;
 }
 
 // Universal content generation function
@@ -467,7 +494,13 @@ api.post('/process-sequence/stream', async (c) => {
   const body = await c.req.json()
 
   const ProcessSequenceSchema = z.object({
-    prompts: z.array(z.string()).min(1, 'At least one prompt is required'),
+    prompts: z.array(z.union([
+      z.string(),
+      z.object({
+        content: z.string(),
+        model: z.string().optional()
+      })
+    ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
     apiKey: z.string().optional()
@@ -530,10 +563,11 @@ api.post('/process-sequence/stream', async (c) => {
 
           // Process each prompt in sequence
           for (let i = 0; i < prompts.length; i++) {
-            const originalPrompt = prompts[i]
+            const originalPromptText = getPromptContent(prompts, i)
+            const stepModel = getPromptModel(prompts, i, modelName)
 
             // Replace {USER_REQUEST} placeholder with actual user request
-            let processedPrompt = originalPrompt.replace(/{USER_REQUEST}/g, userRequest)
+            let processedPrompt = originalPromptText.replace(/{USER_REQUEST}/g, userRequest)
 
             // Add context from previous steps
             if (context) {
@@ -547,14 +581,14 @@ api.post('/process-sequence/stream', async (c) => {
               type: 'progress',
               step: i + 1,
               totalSteps: prompts.length,
-              description: `Processing step ${i + 1}...`,
+              description: `Processing step ${i + 1} with ${stepModel}...`,
               characterCount: results.join('').length,
               timestamp: new Date().toISOString()
             });
             safeEnqueue(`data: ${stepStartData}\n\n`);
 
             // enable thinking when model is gemini-2.5-flash or gemini-2.5-pro
-            const thinkingConfig = modelName === 'qwen/qwen3-coder' ? {
+            const thinkingConfig = stepModel === 'qwen/qwen3-coder' ? {
               thinking: {
                 includeThoughts: true,
                 thinkingBudget: 1024
@@ -564,7 +598,7 @@ api.post('/process-sequence/stream', async (c) => {
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
               const provider = "openrouter";
-              const result = await generateContent({ provider, model: modelName, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
 
               let response = ''
               let thinking = ''
@@ -596,11 +630,12 @@ api.post('/process-sequence/stream', async (c) => {
               // Store detailed step information
               detailedSteps.push({
                 stepNumber: i + 1,
-                originalPrompt,
+                originalPrompt: originalPromptText,
                 fullProcessedPrompt,
                 response,
                 thinking: thinking || undefined,
-                characterCount: response.length
+                characterCount: response.length,
+                model: stepModel
               })
 
               // Add this result to context for next prompts
@@ -688,7 +723,13 @@ api.post('/process-sequence', async (c) => {
   const body = await c.req.json()
 
   const ProcessSequenceSchema = z.object({
-    prompts: z.array(z.string()).min(1, 'At least one prompt is required'),
+    prompts: z.array(z.union([
+      z.string(),
+      z.object({
+        content: z.string(),
+        model: z.string().optional()
+      })
+    ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
     apiKey: z.string().optional()
@@ -705,10 +746,11 @@ api.post('/process-sequence', async (c) => {
 
     // Process each prompt in sequence
     for (let i = 0; i < prompts.length; i++) {
-      const originalPrompt = prompts[i]
+      const originalPromptText = getPromptContent(prompts, i)
+      const stepModel = getPromptModel(prompts, i, modelName)
 
       // Replace {USER_REQUEST} placeholder with actual user request
-      let processedPrompt = originalPrompt.replace(/{USER_REQUEST}/g, userRequest)
+      let processedPrompt = originalPromptText.replace(/{USER_REQUEST}/g, userRequest)
 
       // Add context from previous steps
       if (context) {
@@ -719,18 +761,18 @@ api.post('/process-sequence', async (c) => {
       const fullProcessedPrompt = processedPrompt
 
       // enable thinking when model is gemini-2.5-flash or gemini-2.5-pro
-      const thinkingConfig = modelName === 'qwen/qwen3-coder' ? {
+      const thinkingConfig = stepModel === 'qwen/qwen3-coder' ? {
         thinking: {
           includeThoughts: true,
           thinkingBudget: 1024
         }
       } : undefined
 
-      console.log(`Making request with model: ${modelName} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
+      console.log(`Making request with model: ${stepModel} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
 
       try {
         const provider = "openrouter";
-        const result = await generateContent({ provider, model: modelName, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
 
         let response = ''
         let thinking = ''
@@ -749,11 +791,12 @@ api.post('/process-sequence', async (c) => {
         // Store detailed step information
         detailedSteps.push({
           stepNumber: i + 1,
-          originalPrompt,
+          originalPrompt: originalPromptText,
           fullProcessedPrompt,
           response,
           thinking: thinking || undefined,
-          characterCount: response.length
+          characterCount: response.length,
+          model: stepModel
         })
 
         // Add this result to context for next prompts

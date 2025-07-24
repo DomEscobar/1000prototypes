@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Plus, X, GripVertical, Info, Maximize2, Minimize2 } from "lucide-react";
-import { Agent } from "@/lib/api";
+import { Plus, X, GripVertical, Info, Maximize2, Minimize2, Bot } from "lucide-react";
+import { Agent, PromptStep, normalizePrompts } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,24 +18,21 @@ interface AgentSettingsModalProps {
   onSave: (agent: Agent) => void;
 }
 
-
-
 export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSettingsModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [provider, setProvider] = useState<'openrouter'>('openrouter');
   const [model, setModel] = useState("");
-  const [prompts, setPrompts] = useState<string[]>([]);
+  const [prompts, setPrompts] = useState<PromptStep[]>([]);
   
   // New state for expanded textarea modal
   const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null);
   const [expandedPromptValue, setExpandedPromptValue] = useState("");
+  const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
-
-
 
   useEffect(() => {
     if (agent) {
@@ -44,21 +41,22 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setStatus(agent.status || "active");
       setProvider("openrouter");
       setModel(agent.model || "qwen/qwen3-coder");
-      setPrompts(agent.prompts || [""]);
+      
+      // Convert legacy string[] format to PromptStep[] format
+      const normalizedPrompts = normalizePrompts(agent.prompts || [""]);
+      setPrompts(normalizedPrompts.length > 0 ? normalizedPrompts : [{ content: "" }]);
     } else {
       setName("");
       setDescription("");
       setStatus("active");
       setProvider("openrouter");
       setModel("qwen/qwen3-coder");
-      setPrompts([""]);
+      setPrompts([{ content: "" }]);
     }
   }, [agent, isOpen]);
 
-
-
   const handleAddPrompt = () => {
-    setPrompts([...prompts, ""]);
+    setPrompts([...prompts, { content: "" }]);
   };
 
   const handleRemovePrompt = (index: number) => {
@@ -67,33 +65,51 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
     }
   };
 
-  const handlePromptChange = (index: number, value: string) => {
+  const handlePromptChange = (index: number, content: string) => {
     const updated = [...prompts];
-    updated[index] = value;
+    updated[index] = { ...updated[index], content };
+    setPrompts(updated);
+  };
+
+  const handlePromptModelChange = (index: number, promptModel: string) => {
+    const updated = [...prompts];
+    updated[index] = { 
+      ...updated[index], 
+      model: promptModel === model ? undefined : promptModel.trim() || undefined // Don't store if same as default or empty
+    };
     setPrompts(updated);
   };
 
   // New functions for expanded modal
   const handleExpandPrompt = (index: number) => {
     setExpandedPromptIndex(index);
-    setExpandedPromptValue(prompts[index]);
+    setExpandedPromptValue(prompts[index].content);
+    setExpandedPromptModel(prompts[index].model || "");
   };
 
   const handleCloseExpandedPrompt = () => {
     if (expandedPromptIndex !== null) {
-      handlePromptChange(expandedPromptIndex, expandedPromptValue);
+      const updated = [...prompts];
+      updated[expandedPromptIndex] = {
+        ...updated[expandedPromptIndex],
+        content: expandedPromptValue,
+        model: expandedPromptModel === model ? undefined : expandedPromptModel.trim() || undefined
+      };
+      setPrompts(updated);
     }
     setExpandedPromptIndex(null);
     setExpandedPromptValue("");
+    setExpandedPromptModel("");
   };
 
   const handleCancelExpandedPrompt = () => {
     setExpandedPromptIndex(null);
     setExpandedPromptValue("");
+    setExpandedPromptModel("");
   };
 
   const handleSave = () => {
-    const filteredPrompts = prompts.filter(p => p.trim());
+    const filteredPrompts = prompts.filter(p => p.content.trim());
     
     const savedAgent: Agent = {
       id: agent?.id || Date.now().toString(),
@@ -101,7 +117,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       description: description || "",
       status: status,
       provider: "openrouter",
-      model,
+      model: model.trim() || "qwen/qwen3-coder",
       prompts: filteredPrompts,
       isBuilding: false,
       output: agent?.output || null,
@@ -112,10 +128,6 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
     onSave(savedAgent);
     onClose();
   };
-
-
-
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -176,20 +188,20 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
               </Select>
             </div>
 
-            {/* Model Selection */}
+            {/* Default Model Selection */}
             <div className="space-y-2">
               <Label htmlFor="agent-model" className="text-foreground">
-                Model
+                Default Model
               </Label>
               <Input
                 id="agent-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g., anthropic/claude-3.5-sonnet"
+                placeholder="e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
                 className="bg-background border-border"
               />
               <p className="text-xs text-muted-foreground">
-                OpenRouter provides access to multiple AI models from different providers.
+                This model will be used for prompts that don't specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite
               </p>
             </div>
 
@@ -200,7 +212,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                   <Label className="text-foreground">Prompt Sequence</Label>
                   <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isMobile ? 'flex-wrap' : ''}`}>
                     <Info className="h-4 w-4 flex-shrink-0" />
-                    <span>Define the sequence of prompts this agent will execute when processing requests</span>
+                    <span>Define the sequence of prompts this agent will execute. Each prompt can use a different AI model.</span>
                   </div>
                 </div>
                 <Button
@@ -250,9 +262,23 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                           )}
                         </div>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-3">
+                        {/* Per-prompt model selection */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Bot className="h-3 w-3" />
+                            Model for Step {index + 1}
+                          </Label>
+                          <Input
+                            value={prompt.model || ""}
+                            onChange={(e) => handlePromptModelChange(index, e.target.value)}
+                            placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                            className="bg-background border-border h-8 text-xs"
+                          />
+                        </div>
+                        
                         <Textarea
-                          value={prompt}
+                          value={prompt.content}
                           onChange={(e) => handlePromptChange(index, e.target.value)}
                           placeholder={`Enter prompt step ${index + 1}...\n\nTip: Use {USER_REQUEST} to reference the user's request in your prompt.`}
                           className={`bg-background border-border resize-none min-h-[190px] ${isMobile ? 'text-sm' : ''}`}
@@ -287,6 +313,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                   <p>• Each prompt in the sequence is executed in order when processing a request</p>
                   <p>• Use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">{"{USER_REQUEST}"}</code> to insert the user's request into your prompts</p>
                   <p>• Previous prompt outputs are automatically passed as context to subsequent prompts</p>
+                  <p>• Each prompt can use a different AI model - perfect for specialized tasks</p>
+                  <p>• Leave model field empty to use the default model for that step</p>
                   <p>• The final prompt's output is shown as the agent's result</p>
                 </div>
               </div>
@@ -307,7 +335,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
             <Button
               onClick={handleSave}
               className={`bg-gradient-primary hover:opacity-90 ${isMobile ? 'w-full' : ''}`}
-              disabled={!name.trim() || prompts.filter(p => p.trim()).length === 0}
+              disabled={!name.trim() || prompts.filter(p => p.content.trim()).length === 0}
             >
               {agent ? "Save Changes" : "Create Agent"}
             </Button>
@@ -326,6 +354,20 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
           </DialogHeader>
           
           <div className="flex-1 flex flex-col gap-4 min-h-0">
+            {/* Model selection for expanded prompt */}
+            <div className="space-y-2">
+              <Label className="text-foreground flex items-center gap-2">
+                <Bot className="h-4 w-4" />
+                Model for this step
+              </Label>
+              <Input
+                value={expandedPromptModel}
+                onChange={(e) => setExpandedPromptModel(e.target.value)}
+                placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                className="bg-background border-border"
+              />
+            </div>
+
             <div className="flex-1">
               <Textarea
                 value={expandedPromptValue}
@@ -339,6 +381,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
               <div className="text-blue-700 dark:text-blue-300 text-xs space-y-1">
                 <p>• Use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">{"{USER_REQUEST}"}</code> to insert the user's request</p>
                 <p>• Previous prompt outputs are automatically passed as context to subsequent prompts</p>
+                <p>• Choose the best AI model for this specific task (e.g., Claude for analysis, GPT-4 for code)</p>
+                <p>• Leave model empty to use the agent's default model</p>
                 <p>• Write clear, specific instructions for the AI to follow</p>
               </div>
             </div>

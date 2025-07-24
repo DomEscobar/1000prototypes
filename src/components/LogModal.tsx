@@ -1,9 +1,9 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, MessageSquare, Sparkles } from "lucide-react";
-import { Agent } from "./AgentCard";
+import { Sparkles, MessageSquare, Clock, Bot } from "lucide-react";
+import { Agent } from "@/lib/api";
 
 interface LogModalProps {
   isOpen: boolean;
@@ -33,7 +33,7 @@ export function LogModal({ isOpen, onClose, agent }: LogModalProps) {
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-6">
+        <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
             {hasDetailedSteps ? (
               // Render detailed steps with full prompt and thinking information
@@ -48,16 +48,26 @@ export function LogModal({ isOpen, onClose, agent }: LogModalProps) {
                       </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0 space-y-4">
+                    <div className="flex-1 space-y-3">
                       {/* Step Header */}
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">
-                          Step {step.stepNumber} Processing
-                        </span>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
-                          <Clock className="h-3 w-3" />
-                          <span>{step.characterCount.toLocaleString()} chars</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">
+                            Step {step.stepNumber} Processing
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {step.model && (
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Bot className="h-3 w-3" />
+                              {step.model}
+                            </Badge>
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>{step.characterCount.toLocaleString()} chars</span>
+                          </div>
                         </div>
                       </div>
 
@@ -129,9 +139,14 @@ export function LogModal({ isOpen, onClose, agent }: LogModalProps) {
                           <Clock className="h-3 w-3" />
                           <span>
                             {agent.prompts && agent.prompts[index] 
-                              ? `Prompt: ${agent.prompts[index].length > 50 
-                                  ? agent.prompts[index].substring(0, 50) + "..." 
-                                  : agent.prompts[index]}`
+                              ? `Prompt: ${typeof agent.prompts[index] === 'string' 
+                                  ? (agent.prompts[index] as string).length > 50 
+                                    ? (agent.prompts[index] as string).substring(0, 50) + "..." 
+                                    : agent.prompts[index]
+                                  : (agent.prompts[index] as any).content?.length > 50
+                                    ? (agent.prompts[index] as any).content.substring(0, 50) + "..."
+                                    : (agent.prompts[index] as any).content || `Step ${index + 1}`
+                                }`
                               : `Step ${index + 1}`
                             }
                           </span>

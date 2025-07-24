@@ -355,7 +355,6 @@ const Index = () => {
         {/* Thin Navigation Header */}
         <div className="flex items-center justify-between py-3 mb-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <img src="/logo_poo.png" alt="1000 Prototypes" className="h-8 w-8" />
             <h1 className="text-xl font-semibold bg-gradient-primary bg-clip-text text-transparent">
               1000 Prototypes
             </h1>
@@ -370,8 +369,8 @@ const Index = () => {
               className="flex items-center gap-2 h-9 px-2 sm:px-3"
               title="Community Agents"
             >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Community</span>
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">Agents</span>
             </Button>
             <Button
               variant="outline"

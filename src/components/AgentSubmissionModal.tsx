@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Plus, X, GripVertical, Info, Send, Loader2 } from "lucide-react";
-import { CommunityAgent, apiService } from "@/lib/api";
+import { Plus, X, GripVertical, Info, Send, Loader2, Bot } from "lucide-react";
+import { CommunityAgent, apiService, PromptStep } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,24 +17,12 @@ interface AgentSubmissionModalProps {
   onSuccess?: (agent: CommunityAgent) => void;
 }
 
-// Categories removed - using tags only
-
-const MODELS = [
-  "anthropic/claude-3.5-sonnet",
-  "qwen/qwen3-coder",
-  "openai/gpt-4o",
-  "openai/gpt-4o-mini",
-  "meta-llama/llama-3.1-70b-instruct",
-  "qwen/qwen-2.5-72b-instruct",
-  "microsoft/wizardlm-2-8x22b"
-];
-
 export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmissionModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
   const [model, setModel] = useState("anthropic/claude-3.5-sonnet");
-  const [prompts, setPrompts] = useState<string[]>([""]);
+  const [prompts, setPrompts] = useState<PromptStep[]>([{ content: "" }]);
   const [tags, setTags] = useState<string[]>([""]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -42,7 +30,7 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
   const { toast } = useToast();
 
   const handleAddPrompt = () => {
-    setPrompts([...prompts, ""]);
+    setPrompts([...prompts, { content: "" }]);
   };
 
   const handleRemovePrompt = (index: number) => {
@@ -51,9 +39,18 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
     }
   };
 
-  const handlePromptChange = (index: number, value: string) => {
+  const handlePromptChange = (index: number, content: string) => {
     const updated = [...prompts];
-    updated[index] = value;
+    updated[index] = { ...updated[index], content };
+    setPrompts(updated);
+  };
+
+  const handlePromptModelChange = (index: number, promptModel: string) => {
+    const updated = [...prompts];
+    updated[index] = { 
+      ...updated[index], 
+      model: promptModel === model ? undefined : promptModel.trim() || undefined // Don't store if same as default or empty
+    };
     setPrompts(updated);
   };
 
@@ -103,11 +100,7 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
         return;
       }
 
-
-
-
-
-      const filteredPrompts = prompts.filter(p => p.trim());
+      const filteredPrompts = prompts.filter(p => p.content.trim());
       if (filteredPrompts.length === 0) {
         toast({
           title: "Prompts required",
@@ -129,13 +122,16 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
 
       setIsSubmitting(true);
 
+      // Convert PromptStep[] to string[] for community agents (legacy format)
+      const promptStrings = filteredPrompts.map(p => p.content);
+
       const agentData: Omit<CommunityAgent, 'id' | 'downloads' | 'rating' | 'ratingCount' | 'status' | 'featured' | 'createdAt' | 'updatedAt' | 'lastUpdated'> = {
         name: name.trim(),
         description: description.trim(),
         author: author.trim(),
-        model,
+        model: model.trim() || "anthropic/claude-3.5-sonnet",
         provider: "openrouter",
-        prompts: filteredPrompts,
+        prompts: promptStrings,
         tags: filteredTags
       };
 
@@ -155,7 +151,7 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
       setDescription("");
       setAuthor("");
       setModel("anthropic/claude-3.5-sonnet");
-      setPrompts([""]);
+      setPrompts([{ content: "" }]);
       setTags([""]);
 
       onClose();
@@ -225,8 +221,6 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
                   className="bg-background border-border min-h-[100px]"
                 />
               </div>
-
-
             </div>
 
             {/* Configuration */}
@@ -234,23 +228,16 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
               <h3 className="text-lg font-semibold text-foreground">Configuration</h3>
               
               <div className="space-y-2">
-                <Label className="text-foreground">AI Model</Label>
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger className="bg-background border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {MODELS.map((modelName) => (
-                      <SelectItem 
-                        key={modelName}
-                        value={modelName}
-                        className="focus:bg-accent focus:text-accent-foreground"
-                      >
-                        {modelName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-foreground">Default AI Model</Label>
+                <Input
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
+                  className="bg-background border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This model will be used for prompts that don't specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite
+                </p>
               </div>
             </div>
 
@@ -307,7 +294,7 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
                   <Label className="text-foreground">Prompt Sequence *</Label>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                     <Info className="h-4 w-4 flex-shrink-0" />
-                    <span>Define the sequence of prompts your agent will execute</span>
+                    <span>Define the sequence of prompts your agent will execute. Each prompt can use a different AI model.</span>
                   </div>
                 </div>
                 <Button
@@ -332,9 +319,23 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
                           Step {index + 1}
                         </span>
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-3">
+                        {/* Per-prompt model selection */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Bot className="h-3 w-3" />
+                            Model for Step {index + 1}
+                          </Label>
+                          <Input
+                            value={prompt.model || ""}
+                            onChange={(e) => handlePromptModelChange(index, e.target.value)}
+                            placeholder={`Leave empty to use default (${model || 'anthropic/claude-3.5-sonnet'})`}
+                            className="bg-background border-border h-8 text-xs"
+                          />
+                        </div>
+
                         <Textarea
-                          value={prompt}
+                          value={prompt.content}
                           onChange={(e) => handlePromptChange(index, e.target.value)}
                           placeholder={`Enter prompt step ${index + 1}...\n\nTip: Use {USER_REQUEST} to reference the user's request in your prompt.`}
                           className="bg-background border-border resize-none min-h-[150px] text-sm"
@@ -367,6 +368,8 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
                   <p>• Include technical requirements (frameworks, libraries, etc.)</p>
                   <p>• Define the output format clearly (HTML, structure, etc.)</p>
                   <p>• Each step should build upon previous ones</p>
+                  <p>• Choose the best AI model for each task (e.g., Claude for analysis, GPT-4 for code)</p>
+                  <p>• Leave model field empty to use the default model for that step</p>
                 </div>
               </div>
             </div>

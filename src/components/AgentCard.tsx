@@ -19,7 +19,7 @@ import {
   Power
 } from "lucide-react";
 
-import { ProcessStep, Agent } from "@/lib/api";
+import { ProcessStep, Agent, PromptStep, normalizePrompts } from "@/lib/api";
 
 interface AgentCardProps {
   agent: Agent;
@@ -116,6 +116,42 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
     }
     return <Bot className="h-5 w-5 text-primary" />;
   };
+
+  // Function to determine model display info
+  const getModelInfo = () => {
+    if (!agent.prompts || agent.prompts.length === 0) {
+      return { 
+        displayText: agent.model || 'Default',
+        isMixed: false,
+        models: []
+      };
+    }
+
+    const normalizedPrompts = normalizePrompts(agent.prompts);
+    const defaultModel = agent.model || 'qwen/qwen3-coder';
+    
+    // Get all models used (including default)
+    const modelsUsed = normalizedPrompts.map(prompt => prompt.model || defaultModel);
+    const uniqueModels = Array.from(new Set(modelsUsed));
+    
+    if (uniqueModels.length === 1) {
+      // All prompts use the same model
+      return {
+        displayText: uniqueModels[0],
+        isMixed: false,
+        models: uniqueModels
+      };
+    } else {
+      // Mixed models used
+      return {
+        displayText: `${uniqueModels.length} models`,
+        isMixed: true,
+        models: uniqueModels
+      };
+    }
+  };
+
+  const modelInfo = getModelInfo();
 
   const { preview, isHTML } = extractHTMLPreview(agent.output || '');
 
@@ -292,11 +328,14 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                   {agent.provider}
                 </Badge>
               )}
-              {agent.model && (
-                <Badge variant="outline" className="text-xs">
-                  {agent.model}
-                </Badge>
-              )}
+              <Badge 
+                variant={modelInfo.isMixed ? "default" : "outline"} 
+                className={`text-xs ${modelInfo.isMixed ? 'bg-gradient-primary text-primary-foreground' : ''}`}
+                title={modelInfo.isMixed ? `Uses: ${modelInfo.models.join(', ')}` : `Model: ${modelInfo.displayText}`}
+              >
+                {modelInfo.isMixed && <Bot className="h-3 w-3 mr-1" />}
+                {modelInfo.displayText}
+              </Badge>
             </div>
           </div>
           

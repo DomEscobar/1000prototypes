@@ -3,13 +3,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // LocalStorage key for API key
 const API_KEY_STORAGE_KEY = 'openrouter-api-key';
 
+// Enhanced prompt interface to support per-prompt models
+export interface PromptStep {
+  content: string;
+  model?: string; // Optional model override for this specific prompt
+}
+
 export interface Agent {
   id: string;
   name: string;
   description: string;
   status: 'active' | 'inactive';
-  prompts: string[];
-  model?: string;
+  prompts: string[] | PromptStep[]; // Support both legacy string[] and new PromptStep[]
+  model?: string; // Default model for the agent (fallback for prompts without specific model)
   provider?: 'openrouter';
   createdAt?: string;
   updatedAt?: string;
@@ -68,9 +74,9 @@ export interface AgentInteraction {
 }
 
 export interface ProcessSequenceRequest {
-  prompts: string[];
+  prompts: string[] | PromptStep[]; // Support both legacy and new formats
   userRequest: string;
-  model?: string;
+  model?: string; // Default model if not specified per prompt
   apiKey?: string;
 }
 
@@ -81,6 +87,7 @@ export interface ProcessStep {
   response: string;
   thinking?: string;
   characterCount: number;
+  model?: string; // Track which model was used for this step
 }
 
 export interface ProcessSequenceResponse {
@@ -98,36 +105,10 @@ export interface ProcessSequenceResponse {
 // 2. Increment DEFAULT_AGENTS_VERSION by 1
 // 3. Existing users will get new/updated agents while keeping their customizations
 // 4. Only non-customized default agents will be updated automatically
-const DEFAULT_AGENTS_VERSION = 5;
+const DEFAULT_AGENTS_VERSION = 7;
 
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
-  {
-    id: "1",
-    name: "HTML Website Builder",
-    description: "AI agent that creates complete HTML websites through UI/UX design followed by development implementation",
-    status: "active",
-    prompts: [
-      "Act like a high class UI UX designer with sense of award winning websites and apps cause of your unique creative complex animations.\n\nYour objective {USER_REQUEST}.\nFocus on great animation and design.\n\nAt first write down your detailed idea plan",
-      "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nResponse me the single HTML file now:"
-    ],
-    model: "moonshotai/kimi-k2",
-    provider: "openrouter",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2", 
-    name: "Creative Web Designer",
-    description: "AI agent specialized in creating stunning web designs with unique animations and user experiences",
-    status: "active",
-    prompts: [
-      "You are a world-class creative director and UI/UX designer known for crazy abstract creative websites with innovative animations and user experiences.\n\nAnalyze this request: {USER_REQUEST}.\n\nCreate a detailed design concept including:\n1) Overall visual theme and mood\n2) Color palette and typography\n3) Layout structure with at least 5 main sections\n4) Interactive elements and animation concepts\n5) User journey and experience flow.\n\nFocus on creativity, innovation, and visual impact.",
-      "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nDeliver a complete, self-contained HTML file."
-    ],
-    model: "moonshotai/kimi-k2",
-    provider: "openrouter",
-    createdAt: new Date().toISOString()
-  },
   {
     id: "3",
     name: "Collaborative Dev Team",
@@ -135,11 +116,51 @@ const DEFAULT_AGENTS: Agent[] = [
     status: "active",
     prompts: [
       "Step 1: Requirements Analyst & System Architect\n\nYou are a senior requirements analyst and system architect. Your task is to deeply understand the user's request and create a comprehensive technical specification.\n\nUser Request: {USER_REQUEST}\n\nProvide a detailed analysis and architectural plan:\n1) Problem Definition - what exactly needs to be built?\n2) Functional Requirements - what features and capabilities are needed?\n3) Technical Requirements - what technologies and standards should be used?\n4) System Architecture - how should the solution be structured?\n5) Component Breakdown - what are the main parts/modules needed?\n6) Data Flow - how will information move through the system?\n7) UI/UX Specifications - what should the user experience look like?\n8) Development Guidelines - what coding standards and principles should be followed?\n\nCreate a clear technical specification that will guide the development team.",
-      "Step 2: Frontend Developer - UI & Layout Specialist\n\nYou are a frontend developer specializing in UI design and layout structure. Based on the technical specification from Step 1, build the visual foundation and core layout.\n\nYour responsibilities:\n- Create the HTML structure and base layout\n- Implement the visual design and styling\n- Build responsive layout systems\n- Set up the foundational CSS architecture\n- Create reusable UI components\n- Implement basic navigation and layout interactions\n- Ensure mobile-first responsive design\n\nTechnical requirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\">\n- Use semantic HTML structure\n- Implement CSS Grid and Flexbox for layouts\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n- Focus on clean, maintainable CSS\n\nDeliver a well-structured HTML file with complete layout and styling, ready for functionality integration.",
+      "Step 2: Frontend Developer - UI & Layout Specialist\n\nYou are a frontend developer specializing in UI design and layout structure. Based on the technical specification from Step 1, build the visual foundation and core layout.\n\nYour responsibilities:\n- Create the HTML structure and base layout\n- Implement the visual design and styling\n- Build responsive layout systems\n- Set up the foundational CSS architecture\n- Create reusable UI components\n- Implement basic navigation and layout interactions\n- Ensure mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens\n- Test and optimize for all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)\n\nTechnical requirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\">\n- Use semantic HTML structure\n- Implement CSS Grid and Flexbox for responsive layouts\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n- Focus on clean, maintainable CSS\n\nDeliver a well-structured HTML file with complete layout and styling, ready for functionality integration.",
       "Step 3: Backend Developer - Logic & Interaction Specialist\n\nYou are a backend/full-stack developer specializing in functionality and interactive features. You'll take the frontend foundation from Step 2 and add all the dynamic functionality, business logic, and advanced interactions.\n\nYour responsibilities:\n- Implement all interactive features and functionality\n- Add JavaScript logic and event handling\n- Create dynamic content and state management\n- Implement data processing and manipulation\n- Add advanced animations and effects\n- Integrate any required APIs or services\n- Handle form processing and validation\n- Implement any backend-like functionality in frontend\n\nTechnical requirements:\n- Use the HTML/CSS foundation from Step 2 as your starting point\n- Add comprehensive JavaScript functionality\n- You may use any 3rd party JavaScript libraries via CDN:\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Any other libraries that enhance functionality\n- Implement error handling and edge cases\n- Optimize performance and loading\n- Follow clean code principles (SOLID, KIS)\n\nProvide the complete functionality layer that will be integrated with the frontend foundation.",
-      "Step 4: Integration Specialist - Final Assembly\n\nYou are a senior integration specialist and tech lead. Your task is to combine the frontend foundation (Step 2) and backend functionality (Step 3) into one cohesive, production-ready solution.\n\nYour responsibilities:\n- Merge the UI/layout from Step 2 with the functionality from Step 3\n- Resolve any conflicts or integration issues\n- Ensure all components work together seamlessly\n- Optimize the combined solution for performance\n- Add any missing connections between UI and functionality\n- Perform final testing and debugging\n- Polish the overall user experience\n- Ensure code organization and maintainability\n\nIntegration requirements:\n- Combine both previous steps into one complete HTML file\n- Ensure all styling and functionality work together\n- Maintain clean, organized code structure\n- Add comprehensive comments for complex sections\n- Test all interactive elements and features\n- Ensure responsive design works across all screen sizes\n- Optimize loading and performance\n- Add any final enhancements or improvements\n\nDeliver the final, complete, production-ready HTML file that fully satisfies the original user request."
+      "Step 4: Integration Specialist - Final Assembly\n\nYou are a senior integration specialist and tech lead. Your task is to combine the frontend foundation (Step 2) and backend functionality (Step 3) into one cohesive, production-ready solution.\n\nYour responsibilities:\n- Merge the UI/layout from Step 2 with the functionality from Step 3\n- Resolve any conflicts or integration issues\n- Ensure all components work together seamlessly\n- Optimize the combined solution for performance\n- Add any missing connections between UI and functionality\n- Perform final testing and debugging\n- Polish the overall user experience\n- Ensure code organization and maintainability\n\nIntegration requirements:\n- Combine both previous steps into one complete HTML file\n- Ensure all styling and functionality work together\n- Maintain clean, organized code structure\n- Add comprehensive comments for complex sections\n- Test all interactive elements and features\n- Ensure responsive design works across all screen sizes with mobile-first approach\n- Verify perfect mobile experience (320px+) before scaling to larger screens\n- Optimize loading and performance\n- Add any final enhancements or improvements\n\nDeliver the final, complete, production-ready HTML file that fully satisfies the original user request."
     ],
-    model: "anthropic/claude-3.5-sonnet",
+    model: "google/gemini-2.5-flash-lite",
+    provider: "openrouter",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "4",
+    name: "Storytelling Landing Page Master",
+    description: "AI agent that creates narrative-driven landing pages with scroll-triggered journey animations, storytelling sections, and beautiful GSAP animated background objects",
+    status: "inactive",
+    prompts: [
+      "Step 1: Story Architect & Brand Strategist\n\nYou are a master storyteller and brand strategist specializing in creating compelling narratives for landing pages that convert visitors into customers.\n\nUser Request: {USER_REQUEST}\n\nYour task is to analyze the request and create a comprehensive storytelling framework:\n\n1) **Brand Story Analysis**:\n   - What is the core problem this product/service solves?\n   - Who is the target audience and what's their emotional journey?\n   - What's the transformation/outcome the user will experience?\n\n2) **Narrative Structure** (Create a 7-section story arc):\n   - **Hero Section**: Captivating hook and value proposition\n   - **Problem Section**: Pain points and challenges the audience faces\n   - **Journey Section**: The path to transformation (3-4 key steps)\n   - **Solution Section**: How the product/service provides the solution\n   - **Proof Section**: Testimonials, case studies, social proof\n   - **Urgency Section**: Scarcity, limited time offers, FOMO elements\n   - **Action Section**: Strong call-to-action and conversion elements\n\n3) **Emotional Triggers & Messaging**:\n   - Key emotional hooks for each section\n   - Compelling headlines and subheadings\n   - Benefit-focused copy that resonates\n\n4) **Visual Storytelling Elements**:\n   - Background animation concepts for each section\n   - Color psychology and mood for different story beats\n   - Visual metaphors and symbolic elements\n\n5) **User Journey Mapping**:\n   - How users will scroll through the story\n   - Interaction points and engagement moments\n   - Conversion touchpoints throughout the journey\n\nDeliver a comprehensive storytelling blueprint that will guide the visual design and development phases.",
+      "Step 2: Visual Journey Designer & Scroll Experience Architect\n\nYou are a creative director specializing in scroll-driven storytelling experiences and visual narrative design.\n\nBased on the storytelling blueprint from Step 1, create a detailed visual journey design:\n\n1) **Scroll Experience Design**:\n   - Map out the scroll timeline and pacing\n   - Define scroll-triggered animation entry/exit points\n   - Plan parallax layers and depth relationships\n   - Design smooth section transitions\n\n2) **Visual Section Breakdown** (Design each of the 7 sections):\n   - **Hero**: Eye-catching visual concept with animated elements\n   - **Problem**: Visual representation of pain points\n   - **Journey**: Step-by-step visual progression with animations\n   - **Solution**: Product/service showcase with interactive elements\n   - **Proof**: Testimonial cards with subtle animations\n   - **Urgency**: Dynamic countdown or progress elements\n   - **Action**: Compelling CTA design with micro-animations\n\n3) **Background Animation Concepts**:\n   - Floating geometric shapes that respond to scroll\n   - Particle systems that follow the narrative\n   - Morphing background gradients based on story mood\n   - Interactive elements like animated icons or illustrations\n\n4) **Visual Hierarchy & Flow**:\n   - Typography scales and animation timing\n   - Color schemes that evolve with the story\n   - Visual focal points and attention guidance\n   - Mobile-first responsive behavior\n\n5) **Animation Storyboard**:\n   - Timeline of when animations trigger during scroll\n   - Direction and style of element movements\n   - Easing functions and duration specifications\n   - Interaction feedback and hover states\n\nProvide a complete visual design specification with detailed animation descriptions that developers can implement.",
+      "Step 3: Animation Developer & GSAP Specialist\n\nYou are a frontend animation expert specializing in GSAP ScrollTrigger and creating smooth, performant scroll-driven experiences.\n\nUsing the visual design specification from Step 2, build the HTML structure and implement all animations:\n\n1) **HTML Structure**:\n   - Create semantic HTML for all 7 sections from the story arc\n   - Implement proper heading hierarchy and accessibility\n   - Structure elements for optimal animation performance\n   - Add data attributes for animation targeting\n\n2) **GSAP Animation Implementation**:\n   - ScrollTrigger setup for each section\n   - Smooth parallax effects for background elements\n   - Staggered animations for text and content reveals\n   - Morphing shapes and floating background objects\n   - Timeline-based sequence animations\n\n3) **Background Animation Systems**:\n   - Floating geometric shapes with physics-like movement\n   - Particle systems that respond to scroll position\n   - Color transitions that match the narrative mood\n   - Interactive hover effects and micro-animations\n\n4) **Performance Optimization**:\n   - Efficient animation loops and RAF usage\n   - GPU-accelerated transforms\n   - Debounced scroll listeners\n   - Mobile performance considerations\n\nTechnical requirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Include GSAP with ScrollTrigger: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script> and <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js\"></script>\n- Choose and include a Google Font that matches the brand mood\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional \n (Must be a .png) Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens\n- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)\n\nDeliver the animated HTML foundation with all scroll-triggered animations working smoothly.",
+      "Step 4: Conversion Optimizer & Final Assembly\n\nYou are a conversion rate optimization expert and technical integrator specializing in high-converting landing pages.\n\nTaking the animated foundation from Step 3, add all conversion elements and finalize the landing page:\n\n1) **Conversion Elements Integration**:\n   - Strategic CTA button placement throughout the story\n   - Lead capture forms with smooth animations\n   - Social proof elements (testimonials, logos, stats)\n   - Trust signals and security badges\n   - Urgency and scarcity elements\n\n2) **Form & Interaction Enhancement**:\n   - Smooth form animations and micro-interactions\n   - Input field focus states and validation feedback\n   - Progress indicators for multi-step forms\n   - Success/error state animations\n\n3) **Mobile Optimization**:\n   - Touch-friendly interaction areas\n   - Optimized animation performance on mobile\n   - Thumb-friendly button sizes and spacing\n   - Mobile-specific scroll behaviors\n\n4) **Final Polish & Testing**:\n   - Cross-browser compatibility checks\n   - Performance optimization and loading states\n   - Accessibility improvements (ARIA labels, keyboard navigation)\n   - SEO-friendly structure and meta information\n\n5) **Conversion Psychology**:\n   - Strategic use of colors for psychological impact\n   - Compelling copy that addresses objections\n   - Social proof positioning for maximum impact\n   - Clear value proposition reinforcement\n\nFinal requirements:\n- Ensure all animations work smoothly across devices\n- Implement proper loading states and progressive enhancement\n- Add comprehensive form handling with client-side validation\n- Include analytics tracking setup (placeholder events)\n- Optimize for Core Web Vitals (LCP, FID, CLS)\n- Test all conversion pathways and user flows\n\nDeliver the complete, production-ready storytelling landing page that combines beautiful animations with high conversion potential."
+    ],
+    model: "google/gemini-2.5-flash-lite",
+    provider: "openrouter",
+    createdAt: new Date().toISOString()
+  }, {
+    id: "1",
+    name: "General Website Builder",
+    description: "AI agent that creates complete HTML websites through UI/UX design followed by development implementation",
+    status: "inactive",
+    prompts: [
+      "Act like a high class UI UX designer with sense of award winning websites and apps cause of your unique creative complex animations.\n\nYour objective {USER_REQUEST}.\nFocus on great animation and design.\n\nAt first write down your detailed idea plan",
+      "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience - design and develop for mobile devices first, then scale up to larger screens.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\nEnsure the design is fully responsive across all device sizes (mobile, tablet, desktop).\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nResponse me the single HTML file now:"
+    ],
+    model: "moonshotai/kimi-k2",
+    provider: "openrouter",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "2",
+    name: "Creative Web Designer",
+    description: "AI agent specialized in creating stunning web designs with unique animations and user experiences",
+    status: "inactive",
+    prompts: [
+      "You are a world-class creative director and UI/UX designer known for crazy abstract creative websites with innovative animations and user experiences.\n\nAnalyze this request: {USER_REQUEST}.\n\nCreate a detailed design concept including:\n1) Overall visual theme and mood\n2) Color palette and typography\n3) Layout structure with at least 5 main sections\n4) Interactive elements and animation concepts\n5) User journey and experience flow.\n\nFocus on creativity, innovation, and visual impact.",
+      "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens\n- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nDeliver a complete, self-contained HTML file."
+    ],
+    model: "moonshotai/kimi-k2",
     provider: "openrouter",
     createdAt: new Date().toISOString()
   }
@@ -156,21 +177,21 @@ class LocalAgentService {
       const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
       const storedVersion = localStorage.getItem(AGENTS_VERSION_KEY);
       const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
-      
+
       if (stored && currentStoredVersion >= DEFAULT_AGENTS_VERSION) {
         // Version is up to date, just return stored agents with basic migration
         const agents = JSON.parse(stored);
         const migratedAgents = this.migrateAgents(agents);
-        
+
         // Save migrated agents back to localStorage if basic migration occurred
         const needsMigration = agents.some(agent => !agent.provider);
         if (needsMigration) {
           this.saveAgents(migratedAgents);
         }
-        
+
         return migratedAgents;
       }
-      
+
       if (stored) {
         // Version is outdated, need to merge with new defaults
         const existingAgents = JSON.parse(stored);
@@ -182,7 +203,7 @@ class LocalAgentService {
     } catch (error) {
       console.error('Error loading agents from localStorage:', error);
     }
-    
+
     // Initialize with default agents if none exist
     const defaultAgents = this.migrateAgents(DEFAULT_AGENTS);
     this.saveAgents(defaultAgents);
@@ -237,11 +258,11 @@ class LocalAgentService {
   private mergeWithDefaults(existingAgents: Agent[]): Agent[] {
     // Create a map of existing agents by ID for quick lookup
     const existingAgentsMap = new Map(existingAgents.map(agent => [agent.id, agent]));
-    
+
     // Start with migrated existing agents
     const migratedExisting = this.migrateAgents(existingAgents);
     const result: Agent[] = [...migratedExisting];
-    
+
     // Add new default agents that don't exist in user's collection
     for (const defaultAgent of DEFAULT_AGENTS) {
       if (!existingAgentsMap.has(defaultAgent.id)) {
@@ -251,14 +272,14 @@ class LocalAgentService {
       } else {
         // Agent exists, check if default agent has been updated
         const existingAgent = existingAgentsMap.get(defaultAgent.id)!;
-        
+
         // Only update if the existing agent hasn't been customized by user
         // We consider an agent "customized" if user has changed name, description, or prompts
-        const isCustomized = 
+        const isCustomized =
           existingAgent.name !== this.getOriginalDefaultAgent(defaultAgent.id)?.name ||
           existingAgent.description !== this.getOriginalDefaultAgent(defaultAgent.id)?.description ||
           JSON.stringify(existingAgent.prompts) !== JSON.stringify(this.getOriginalDefaultAgent(defaultAgent.id)?.prompts);
-        
+
         if (!isCustomized) {
           // Agent hasn't been customized, safe to update with new default
           const updatedAgent: Agent = {
@@ -270,7 +291,7 @@ class LocalAgentService {
             provider: 'openrouter',
             updatedAt: new Date().toISOString()
           };
-          
+
           // Replace the existing agent in result
           const index = result.findIndex(a => a.id === defaultAgent.id);
           if (index !== -1) {
@@ -279,7 +300,7 @@ class LocalAgentService {
         }
       }
     }
-    
+
     return result;
   }
 
@@ -295,17 +316,17 @@ class LocalAgentService {
   getAgent(id: string): { agent: Agent } {
     const agents = this.getStoredAgents();
     const agent = agents.find(a => a.id === id);
-    
+
     if (!agent) {
       throw new Error(`Agent with id ${id} not found`);
     }
-    
+
     return { agent };
   }
 
   createAgent(agentData: Omit<Agent, 'id' | 'status' | 'createdAt'>): { agent: Agent } {
     const agents = this.getStoredAgents();
-    
+
     const newAgent: Agent = {
       ...agentData,
       id: Date.now().toString(),
@@ -313,21 +334,21 @@ class LocalAgentService {
       provider: 'openrouter',
       createdAt: new Date().toISOString()
     };
-    
+
     agents.push(newAgent);
     this.saveAgents(agents);
-    
+
     return { agent: newAgent };
   }
 
   updateAgent(id: string, updates: Partial<Agent>): { agent: Agent } {
     const agents = this.getStoredAgents();
     const agentIndex = agents.findIndex(a => a.id === id);
-    
+
     if (agentIndex === -1) {
       throw new Error(`Agent with id ${id} not found`);
     }
-    
+
     const updatedAgent: Agent = {
       ...agents[agentIndex],
       ...updates,
@@ -335,24 +356,24 @@ class LocalAgentService {
       provider: 'openrouter', // Ensure provider is always openrouter
       updatedAt: new Date().toISOString()
     };
-    
+
     agents[agentIndex] = updatedAgent;
     this.saveAgents(agents);
-    
+
     return { agent: updatedAgent };
   }
 
   deleteAgent(id: string): { message: string } {
     const agents = this.getStoredAgents();
     const agentIndex = agents.findIndex(a => a.id === id);
-    
+
     if (agentIndex === -1) {
       throw new Error(`Agent with id ${id} not found`);
     }
-    
+
     agents.splice(agentIndex, 1);
     this.saveAgents(agents);
-    
+
     return { message: `Agent ${id} deleted successfully` };
   }
 
@@ -366,13 +387,13 @@ class LocalAgentService {
     try {
       // Clear version to force update
       localStorage.removeItem(AGENTS_VERSION_KEY);
-      
+
       // Reload agents (this will trigger merge with defaults)
       const agents = this.getStoredAgents();
-      
-      return { 
-        agents, 
-        message: `Successfully updated agents to version ${DEFAULT_AGENTS_VERSION}` 
+
+      return {
+        agents,
+        message: `Successfully updated agents to version ${DEFAULT_AGENTS_VERSION}`
       };
     } catch (error) {
       console.error('Error forcing agent update:', error);
@@ -380,9 +401,9 @@ class LocalAgentService {
     }
   }
 
-  getVersionInfo(): { 
-    currentVersion: number; 
-    storedVersion: number; 
+  getVersionInfo(): {
+    currentVersion: number;
+    storedVersion: number;
     isUpToDate: boolean;
     totalAgents: number;
     defaultAgents: number;
@@ -391,7 +412,7 @@ class LocalAgentService {
       const storedVersion = localStorage.getItem(AGENTS_VERSION_KEY);
       const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
       const agents = this.getStoredAgents();
-      
+
       return {
         currentVersion: DEFAULT_AGENTS_VERSION,
         storedVersion: currentStoredVersion,
@@ -454,7 +475,7 @@ class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     const apiKey = this.getApiKey();
-    
+
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
@@ -518,9 +539,9 @@ class ApiService {
   }
 
   // Get current agents version info
-  async getAgentsVersionInfo(): Promise<{ 
-    currentVersion: number; 
-    storedVersion: number; 
+  async getAgentsVersionInfo(): Promise<{
+    currentVersion: number;
+    storedVersion: number;
     isUpToDate: boolean;
     totalAgents: number;
     defaultAgents: number;
@@ -608,7 +629,7 @@ class ApiService {
   ): Promise<{ interaction: AgentInteraction }> {
     // For basic interactions, we can use the chat endpoint
     const response = await this.chat(message, context, `You are agent ${agentId}.`);
-    
+
     const interaction: AgentInteraction = {
       agentId,
       userMessage: message,
@@ -616,7 +637,7 @@ class ApiService {
       type,
       timestamp: response.timestamp
     };
-    
+
     return { interaction };
   }
 
@@ -642,7 +663,7 @@ class ApiService {
     onError?: (error: string) => void
   ): Promise<void> {
     const url = `${API_BASE_URL}/api/chat/stream`;
-    
+
     try {
       const apiKey = this.getApiKey();
       const response = await fetch(url, {
@@ -674,36 +695,36 @@ class ApiService {
       }
 
       let buffer = '';
-      
+
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        
+
         // Keep the last incomplete line in buffer
         buffer = lines.pop() || '';
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const jsonStr = line.slice(6).trim();
               if (!jsonStr) continue;
-              
+
               const data = JSON.parse(jsonStr);
-              
+
               if (data.error) {
                 onError?.(data.error);
                 return;
               }
-              
+
               if (data.done) {
                 onComplete?.();
                 return;
               }
-              
+
               if (data.content) {
                 onChunk?.(data.content);
               }
@@ -713,7 +734,7 @@ class ApiService {
           }
         }
       }
-      
+
       // Process any remaining data in buffer
       if (buffer.startsWith('data: ')) {
         try {
@@ -730,10 +751,10 @@ class ApiService {
           console.warn('Failed to parse final buffer data:', parseError);
         }
       }
-      
+
       // Ensure completion callback is called
       onComplete?.();
-      
+
     } catch (error) {
       console.error('Streaming error:', error);
       onError?.(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -744,12 +765,12 @@ class ApiService {
   async processPromptSequence(request: ProcessSequenceRequest): Promise<ProcessSequenceResponse> {
     const fallbackApiKey = this.getApiKey();
     const requestBody = { ...request };
-    
+
     // Use fallback API key only if no API key is provided in request
     if (!requestBody.apiKey && fallbackApiKey) {
       requestBody.apiKey = fallbackApiKey;
     }
-    
+
     return this.request('/api/process-sequence', {
       method: 'POST',
       body: JSON.stringify(requestBody),
@@ -765,16 +786,16 @@ class ApiService {
     onError?: (error: string) => void
   ): Promise<void> {
     const url = `${API_BASE_URL}/api/process-sequence/stream`;
-    
+
     try {
       const fallbackApiKey = this.getApiKey();
       const requestBody = { ...request };
-      
+
       // Use fallback API key only if no API key is provided in request
       if (!requestBody.apiKey && fallbackApiKey) {
         requestBody.apiKey = fallbackApiKey;
       }
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -804,31 +825,31 @@ class ApiService {
       }
 
       let buffer = '';
-      
+
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        
+
         // Keep the last incomplete line in buffer
         buffer = lines.pop() || '';
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
               const jsonStr = line.slice(6).trim();
               if (!jsonStr) continue;
-              
+
               const data = JSON.parse(jsonStr);
-              
+
               if (data.type === 'error') {
                 onError?.(data.error);
                 return;
               }
-              
+
               if (data.type === 'progress') {
                 onProgress?.(data.step, data.totalSteps, data.description, data.characterCount);
               } else if (data.type === 'step_complete') {
@@ -850,7 +871,7 @@ class ApiService {
           }
         }
       }
-      
+
       // Process any remaining data in buffer
       if (buffer.startsWith('data: ')) {
         try {
@@ -872,7 +893,7 @@ class ApiService {
           console.warn('Failed to parse final buffer data:', parseError);
         }
       }
-      
+
     } catch (error) {
       console.error('Streaming process sequence error:', error);
       onError?.(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -885,7 +906,7 @@ class ApiService {
       // Get the agent from localStorage
       const agentResponse = this.localAgentService.getAgent(agentId);
       const agent = agentResponse.agent;
-      
+
       if (!agent.prompts || agent.prompts.length === 0) {
         throw new Error('Agent has no prompt sequence defined');
       }
@@ -899,19 +920,19 @@ class ApiService {
         userRequest,
         model: agent.model || 'qwen/qwen3-coder'
       };
-      
+
       // Only add apiKey if it exists
       if (apiKey) {
         requestData.apiKey = apiKey;
       }
-      
+
       const result = await this.processPromptSequence(requestData);
-      
+
       // Return extracted HTML/final output, intermediate results, and detailed steps
       const finalOutput = result.hasHTML ? result.extractedHTML : result.finalOutput;
-      return { 
-        output: finalOutput, 
-        results: result.results, 
+      return {
+        output: finalOutput,
+        results: result.results,
         detailedSteps: result.detailedSteps || []
       };
     } catch (error) {
@@ -922,7 +943,7 @@ class ApiService {
 
   // Build with agent using prompt sequences with progress callbacks
   async buildWithAgentStreaming(
-    agentId: string, 
+    agentId: string,
     userRequest: string,
     onProgress?: (step: number, description: string, characterCount: number, output?: string) => void
   ): Promise<{ output: string; results: string[]; detailedSteps: ProcessStep[] }> {
@@ -931,7 +952,7 @@ class ApiService {
         // Get the agent from localStorage
         const agentResponse = this.localAgentService.getAgent(agentId);
         const agent = agentResponse.agent;
-        
+
         if (!agent.prompts || agent.prompts.length === 0) {
           reject(new Error('Agent has no prompt sequence defined'));
           return;
@@ -946,7 +967,7 @@ class ApiService {
           userRequest,
           model: agent.model || 'qwen/qwen3-coder'
         };
-        
+
         // Only add apiKey if it exists
         if (apiKey) {
           requestData.apiKey = apiKey;
@@ -955,13 +976,13 @@ class ApiService {
         // Use the streaming endpoint for real-time progress
         this.processPromptSequenceStream(
           requestData,
-                     // onProgress callback
-           (step, totalSteps, description, characterCount) => {
-             if (onProgress) {
-               // step is 1-based from backend, but frontend expects 0-based for calculation
-               onProgress(step - 1, description, characterCount);
-             }
-           },
+          // onProgress callback
+          (step, totalSteps, description, characterCount) => {
+            if (onProgress) {
+              // step is 1-based from backend, but frontend expects 0-based for calculation
+              onProgress(step - 1, description, characterCount);
+            }
+          },
           // onStepComplete callback
           (step, stepResult) => {
             if (onProgress) {
@@ -971,8 +992,8 @@ class ApiService {
           // onComplete callback
           (processResult) => {
             const finalOutput = processResult.hasHTML ? processResult.extractedHTML : processResult.finalOutput;
-            resolve({ 
-              output: finalOutput, 
+            resolve({
+              output: finalOutput,
               results: processResult.results,
               detailedSteps: processResult.detailedSteps || []
             });
@@ -982,13 +1003,35 @@ class ApiService {
             reject(new Error(error));
           }
         );
-        
+
       } catch (error) {
         console.error('buildWithAgentStreaming error:', error);
         reject(error);
       }
     });
   }
+}
+
+// Helper functions to work with both prompt formats
+export function normalizePrompts(prompts: string[] | PromptStep[]): PromptStep[] {
+  if (typeof prompts[0] === 'string') {
+    return (prompts as string[]).map(content => ({ content }));
+  }
+  return prompts as PromptStep[];
+}
+
+export function getPromptContent(prompts: string[] | PromptStep[], index: number): string {
+  if (typeof prompts[0] === 'string') {
+    return (prompts as string[])[index];
+  }
+  return (prompts as PromptStep[])[index].content;
+}
+
+export function getPromptModel(prompts: string[] | PromptStep[], index: number): string | undefined {
+  if (typeof prompts[0] === 'string') {
+    return undefined; // Legacy format doesn't have per-prompt models
+  }
+  return (prompts as PromptStep[])[index].model;
 }
 
 export const apiService = new ApiService(); 
