@@ -92,6 +92,14 @@ export interface ProcessSequenceResponse {
   timestamp: string;
 }
 
+// Version for default agents - increment this when you update default agents
+// HOW TO UPDATE DEFAULT AGENTS:
+// 1. Make changes to DEFAULT_AGENTS array
+// 2. Increment DEFAULT_AGENTS_VERSION by 1
+// 3. Existing users will get new/updated agents while keeping their customizations
+// 4. Only non-customized default agents will be updated automatically
+const DEFAULT_AGENTS_VERSION = 5;
+
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
   {
@@ -101,9 +109,9 @@ const DEFAULT_AGENTS: Agent[] = [
     status: "active",
     prompts: [
       "Act like a high class UI UX designer with sense of award winning websites and apps cause of your unique creative complex animations.\n\nYour objective {USER_REQUEST}.\nFocus on great animation and design.\n\nAt first write down your detailed idea plan",
-      "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * AOS (Animate On Scroll): <link href=\"https://unpkg.com/aos@2.3.1/dist/aos.css\" rel=\"stylesheet\"> and <script src=\"https://unpkg.com/aos@2.3.1/dist/aos.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the https://vibemedia.space API which creates images on the fly:\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n&removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n&style=game_asset - if it's a game asset. Include the style of the objects and characters at your prompt.\n\nMake sure that all images have the same or matching color tone.\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!.\n\nResponse me the single HTML file now:"
+      "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nResponse me the single HTML file now:"
     ],
-    model: "qwen/qwen3-coder",
+    model: "moonshotai/kimi-k2",
     provider: "openrouter",
     createdAt: new Date().toISOString()
   },
@@ -114,7 +122,22 @@ const DEFAULT_AGENTS: Agent[] = [
     status: "active",
     prompts: [
       "You are a world-class creative director and UI/UX designer known for crazy abstract creative websites with innovative animations and user experiences.\n\nAnalyze this request: {USER_REQUEST}.\n\nCreate a detailed design concept including:\n1) Overall visual theme and mood\n2) Color palette and typography\n3) Layout structure with at least 5 main sections\n4) Interactive elements and animation concepts\n5) User journey and experience flow.\n\nFocus on creativity, innovation, and visual impact.",
-      "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * AOS (Animate On Scroll): <link href=\"https://unpkg.com/aos@2.3.1/dist/aos.css\" rel=\"stylesheet\"> and <script src=\"https://unpkg.com/aos@2.3.1/dist/aos.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- Use https://vibemedia.space API for images: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n- Include &removeBackground=true for icons/logos\n- Use FIXED IDs, no random generators\n- Ensure all images have consistent color tones.\n\nDeliver a complete, self-contained HTML file."
+      "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nDeliver a complete, self-contained HTML file."
+    ],
+    model: "moonshotai/kimi-k2",
+    provider: "openrouter",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "3",
+    name: "Collaborative Dev Team",
+    description: "AI agent simulating a 4-step collaborative development process: analysis, architecture, dual development, and integration",
+    status: "active",
+    prompts: [
+      "Step 1: Requirements Analyst & System Architect\n\nYou are a senior requirements analyst and system architect. Your task is to deeply understand the user's request and create a comprehensive technical specification.\n\nUser Request: {USER_REQUEST}\n\nProvide a detailed analysis and architectural plan:\n1) Problem Definition - what exactly needs to be built?\n2) Functional Requirements - what features and capabilities are needed?\n3) Technical Requirements - what technologies and standards should be used?\n4) System Architecture - how should the solution be structured?\n5) Component Breakdown - what are the main parts/modules needed?\n6) Data Flow - how will information move through the system?\n7) UI/UX Specifications - what should the user experience look like?\n8) Development Guidelines - what coding standards and principles should be followed?\n\nCreate a clear technical specification that will guide the development team.",
+      "Step 2: Frontend Developer - UI & Layout Specialist\n\nYou are a frontend developer specializing in UI design and layout structure. Based on the technical specification from Step 1, build the visual foundation and core layout.\n\nYour responsibilities:\n- Create the HTML structure and base layout\n- Implement the visual design and styling\n- Build responsive layout systems\n- Set up the foundational CSS architecture\n- Create reusable UI components\n- Implement basic navigation and layout interactions\n- Ensure mobile-first responsive design\n\nTechnical requirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\">\n- Use semantic HTML structure\n- Implement CSS Grid and Flexbox for layouts\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n- Focus on clean, maintainable CSS\n\nDeliver a well-structured HTML file with complete layout and styling, ready for functionality integration.",
+      "Step 3: Backend Developer - Logic & Interaction Specialist\n\nYou are a backend/full-stack developer specializing in functionality and interactive features. You'll take the frontend foundation from Step 2 and add all the dynamic functionality, business logic, and advanced interactions.\n\nYour responsibilities:\n- Implement all interactive features and functionality\n- Add JavaScript logic and event handling\n- Create dynamic content and state management\n- Implement data processing and manipulation\n- Add advanced animations and effects\n- Integrate any required APIs or services\n- Handle form processing and validation\n- Implement any backend-like functionality in frontend\n\nTechnical requirements:\n- Use the HTML/CSS foundation from Step 2 as your starting point\n- Add comprehensive JavaScript functionality\n- You may use any 3rd party JavaScript libraries via CDN:\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Any other libraries that enhance functionality\n- Implement error handling and edge cases\n- Optimize performance and loading\n- Follow clean code principles (SOLID, KIS)\n\nProvide the complete functionality layer that will be integrated with the frontend foundation.",
+      "Step 4: Integration Specialist - Final Assembly\n\nYou are a senior integration specialist and tech lead. Your task is to combine the frontend foundation (Step 2) and backend functionality (Step 3) into one cohesive, production-ready solution.\n\nYour responsibilities:\n- Merge the UI/layout from Step 2 with the functionality from Step 3\n- Resolve any conflicts or integration issues\n- Ensure all components work together seamlessly\n- Optimize the combined solution for performance\n- Add any missing connections between UI and functionality\n- Perform final testing and debugging\n- Polish the overall user experience\n- Ensure code organization and maintainability\n\nIntegration requirements:\n- Combine both previous steps into one complete HTML file\n- Ensure all styling and functionality work together\n- Maintain clean, organized code structure\n- Add comprehensive comments for complex sections\n- Test all interactive elements and features\n- Ensure responsive design works across all screen sizes\n- Optimize loading and performance\n- Add any final enhancements or improvements\n\nDeliver the final, complete, production-ready HTML file that fully satisfies the original user request."
     ],
     model: "anthropic/claude-3.5-sonnet",
     provider: "openrouter",
@@ -122,26 +145,39 @@ const DEFAULT_AGENTS: Agent[] = [
   }
 ];
 
-// LocalStorage key for agents
+// LocalStorage keys for agents and versioning
 const AGENTS_STORAGE_KEY = 'creative-ai-agents';
+const AGENTS_VERSION_KEY = 'creative-ai-agents-version';
 
 // LocalStorage Agent Management
 class LocalAgentService {
   private getStoredAgents(): Agent[] {
     try {
       const stored = localStorage.getItem(AGENTS_STORAGE_KEY);
-      if (stored) {
+      const storedVersion = localStorage.getItem(AGENTS_VERSION_KEY);
+      const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
+      
+      if (stored && currentStoredVersion >= DEFAULT_AGENTS_VERSION) {
+        // Version is up to date, just return stored agents with basic migration
         const agents = JSON.parse(stored);
-        // Migrate existing agents to include provider field
         const migratedAgents = this.migrateAgents(agents);
         
-        // Save migrated agents back to localStorage if migration occurred
+        // Save migrated agents back to localStorage if basic migration occurred
         const needsMigration = agents.some(agent => !agent.provider);
         if (needsMigration) {
           this.saveAgents(migratedAgents);
         }
         
         return migratedAgents;
+      }
+      
+      if (stored) {
+        // Version is outdated, need to merge with new defaults
+        const existingAgents = JSON.parse(stored);
+        const mergedAgents = this.mergeWithDefaults(existingAgents);
+        this.saveAgents(mergedAgents);
+        this.saveVersion();
+        return mergedAgents;
       }
     } catch (error) {
       console.error('Error loading agents from localStorage:', error);
@@ -150,6 +186,7 @@ class LocalAgentService {
     // Initialize with default agents if none exist
     const defaultAgents = this.migrateAgents(DEFAULT_AGENTS);
     this.saveAgents(defaultAgents);
+    this.saveVersion();
     return defaultAgents;
   }
 
@@ -187,6 +224,68 @@ class LocalAgentService {
       console.error('Error saving agents to localStorage:', error);
       throw new Error('Failed to save agents to local storage');
     }
+  }
+
+  private saveVersion(): void {
+    try {
+      localStorage.setItem(AGENTS_VERSION_KEY, DEFAULT_AGENTS_VERSION.toString());
+    } catch (error) {
+      console.error('Error saving agents version to localStorage:', error);
+    }
+  }
+
+  private mergeWithDefaults(existingAgents: Agent[]): Agent[] {
+    // Create a map of existing agents by ID for quick lookup
+    const existingAgentsMap = new Map(existingAgents.map(agent => [agent.id, agent]));
+    
+    // Start with migrated existing agents
+    const migratedExisting = this.migrateAgents(existingAgents);
+    const result: Agent[] = [...migratedExisting];
+    
+    // Add new default agents that don't exist in user's collection
+    for (const defaultAgent of DEFAULT_AGENTS) {
+      if (!existingAgentsMap.has(defaultAgent.id)) {
+        // This is a new default agent, add it
+        const migratedDefaultAgent = this.migrateAgents([defaultAgent])[0];
+        result.push(migratedDefaultAgent);
+      } else {
+        // Agent exists, check if default agent has been updated
+        const existingAgent = existingAgentsMap.get(defaultAgent.id)!;
+        
+        // Only update if the existing agent hasn't been customized by user
+        // We consider an agent "customized" if user has changed name, description, or prompts
+        const isCustomized = 
+          existingAgent.name !== this.getOriginalDefaultAgent(defaultAgent.id)?.name ||
+          existingAgent.description !== this.getOriginalDefaultAgent(defaultAgent.id)?.description ||
+          JSON.stringify(existingAgent.prompts) !== JSON.stringify(this.getOriginalDefaultAgent(defaultAgent.id)?.prompts);
+        
+        if (!isCustomized) {
+          // Agent hasn't been customized, safe to update with new default
+          const updatedAgent: Agent = {
+            ...existingAgent,
+            name: defaultAgent.name,
+            description: defaultAgent.description,
+            prompts: defaultAgent.prompts,
+            model: defaultAgent.model,
+            provider: 'openrouter',
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Replace the existing agent in result
+          const index = result.findIndex(a => a.id === defaultAgent.id);
+          if (index !== -1) {
+            result[index] = updatedAgent;
+          }
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  // Helper method to get original default agent by ID (for comparison)
+  private getOriginalDefaultAgent(id: string): Agent | undefined {
+    return DEFAULT_AGENTS.find(agent => agent.id === id);
   }
 
   getAgents(): { agents: Agent[] } {
@@ -259,7 +358,57 @@ class LocalAgentService {
 
   resetToDefaults(): { agents: Agent[] } {
     this.saveAgents(DEFAULT_AGENTS);
+    this.saveVersion();
     return { agents: DEFAULT_AGENTS };
+  }
+
+  forceUpdate(): { agents: Agent[]; message: string } {
+    try {
+      // Clear version to force update
+      localStorage.removeItem(AGENTS_VERSION_KEY);
+      
+      // Reload agents (this will trigger merge with defaults)
+      const agents = this.getStoredAgents();
+      
+      return { 
+        agents, 
+        message: `Successfully updated agents to version ${DEFAULT_AGENTS_VERSION}` 
+      };
+    } catch (error) {
+      console.error('Error forcing agent update:', error);
+      throw new Error('Failed to force update agents');
+    }
+  }
+
+  getVersionInfo(): { 
+    currentVersion: number; 
+    storedVersion: number; 
+    isUpToDate: boolean;
+    totalAgents: number;
+    defaultAgents: number;
+  } {
+    try {
+      const storedVersion = localStorage.getItem(AGENTS_VERSION_KEY);
+      const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
+      const agents = this.getStoredAgents();
+      
+      return {
+        currentVersion: DEFAULT_AGENTS_VERSION,
+        storedVersion: currentStoredVersion,
+        isUpToDate: currentStoredVersion >= DEFAULT_AGENTS_VERSION,
+        totalAgents: agents.length,
+        defaultAgents: DEFAULT_AGENTS.length
+      };
+    } catch (error) {
+      console.error('Error getting version info:', error);
+      return {
+        currentVersion: DEFAULT_AGENTS_VERSION,
+        storedVersion: 0,
+        isUpToDate: false,
+        totalAgents: 0,
+        defaultAgents: DEFAULT_AGENTS.length
+      };
+    }
   }
 }
 
@@ -361,6 +510,22 @@ class ApiService {
   // Reset agents to defaults (useful for debugging/testing)
   async resetAgentsToDefaults(): Promise<{ agents: Agent[] }> {
     return this.localAgentService.resetToDefaults();
+  }
+
+  // Force update agents to latest version (useful for debugging/testing)
+  async forceUpdateAgents(): Promise<{ agents: Agent[]; message: string }> {
+    return this.localAgentService.forceUpdate();
+  }
+
+  // Get current agents version info
+  async getAgentsVersionInfo(): Promise<{ 
+    currentVersion: number; 
+    storedVersion: number; 
+    isUpToDate: boolean;
+    totalAgents: number;
+    defaultAgents: number;
+  }> {
+    return this.localAgentService.getVersionInfo();
   }
 
   // Saved Outputs operations

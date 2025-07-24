@@ -19,7 +19,9 @@ import {
   Loader2,
   Bot,
   MessageSquare,
-  Monitor
+  Monitor,
+  X,
+  Share2
 } from "lucide-react";
 import { apiService, SavedOutput } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -27,11 +29,20 @@ import ChatInterface from "@/components/ChatInterface";
 import ErrorConsole, { ConsoleError } from "@/components/ErrorConsole";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const Preview = () => {
-  const { id } = useParams<{ id: string }>();
+interface PreviewProps {
+  previewId?: string;
+  isModal?: boolean;
+  onClose?: () => void;
+}
+
+const Preview = ({ previewId, isModal = false, onClose }: PreviewProps) => {
+  const { id: routeId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  // Use previewId prop if in modal mode, otherwise use route param
+  const id = isModal ? previewId : routeId;
   
   const [savedOutput, setSavedOutput] = useState<SavedOutput | null>(null);
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
@@ -488,6 +499,53 @@ Instructions:
     }
   };
 
+  const handleBackNavigation = () => {
+    if (isModal && onClose) {
+      onClose();
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleShare = async () => {
+    if (!id) return;
+
+    const shareUrl = `${window.location.origin}/preview/${id}`;
+    
+    try {
+      // Try using the Web Share API first (mobile devices)
+      if (navigator.share) {
+        await navigator.share({
+          title: savedOutput?.title || 'Shared Output',
+          text: `Check out this output: ${savedOutput?.title || 'Untitled'}`,
+          url: shareUrl
+        });
+        
+        toast({
+          title: "Shared successfully",
+          description: "The preview link has been shared.",
+        });
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        
+        toast({
+          title: "Link copied to clipboard",
+          description: "The preview link has been copied to your clipboard.",
+        });
+      }
+    } catch (error) {
+      // If both methods fail, show the URL for manual copying
+      console.error('Share failed:', error);
+      
+      toast({
+        title: "Share link",
+        description: shareUrl,
+        duration: 10000, // Show longer so user can copy manually
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -506,11 +564,11 @@ Instructions:
           <div className="mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate('/')}
+              onClick={handleBackNavigation}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Home
+              {isModal ? "Close Preview" : "Back to Home"}
             </Button>
           </div>
           
@@ -585,14 +643,22 @@ Instructions:
         <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/30">
           <Button
             variant="ghost"
-            onClick={() => navigate('/')}
+            onClick={handleBackNavigation}
             className="flex items-center gap-2 h-9 px-3"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {isModal ? "Close" : "Back"}
           </Button>
           
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShare}
+              title="Share preview link"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -607,6 +673,16 @@ Instructions:
             >
               <Download className="h-4 w-4" />
             </Button>
+            {isModal && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackNavigation}
+                title="Close Preview"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -700,11 +776,11 @@ Instructions:
       <div className="flex items-center justify-between py-3 px-6 border-b border-border">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={handleBackNavigation}
           className="flex items-center gap-2 h-9 px-3"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Home
+          {isModal ? "Close Preview" : "Back to Home"}
         </Button>
         
         <div className="flex items-center gap-2">
@@ -754,6 +830,15 @@ Instructions:
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleShare}
+            className="flex items-center gap-2"
+            title="Share preview link"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleCopyCode}
             className="flex items-center gap-2"
           >
@@ -767,6 +852,17 @@ Instructions:
           >
             <Download className="h-4 w-4" />
           </Button>
+          {isModal && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackNavigation}
+              className="flex items-center gap-2"
+              title="Close Preview"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 

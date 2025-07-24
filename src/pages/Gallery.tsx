@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   FileText,
   Code2,
-  Images as GalleryIcon
+  Images as GalleryIcon,
+  X
 } from "lucide-react";
 import { apiService, SavedOutput } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import Preview from "./Preview";
 
 const Gallery = () => {
   const navigate = useNavigate();
@@ -37,10 +39,33 @@ const Gallery = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedPreviewId, setSelectedPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
     loadSavedOutputs();
   }, []);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && previewModalOpen) {
+        handleClosePreview();
+      }
+    };
+
+    if (previewModalOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [previewModalOpen]);
 
   const loadSavedOutputs = async () => {
     try {
@@ -80,7 +105,13 @@ const Gallery = () => {
   };
 
   const handleView = (id: string) => {
-    navigate(`/preview/${id}`);
+    setSelectedPreviewId(id);
+    setPreviewModalOpen(true);
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModalOpen(false);
+    setSelectedPreviewId(null);
   };
 
   const truncateText = (text: string, maxLength: number = 100) => {
@@ -270,6 +301,18 @@ const Gallery = () => {
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={deletingId === output.id}
+                          className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          {deletingId === output.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3 w-3" />
+                          )}
+                        </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
@@ -293,6 +336,27 @@ const Gallery = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Preview Modal */}
+        {previewModalOpen && selectedPreviewId && (
+          <div 
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm"
+            onClick={(e) => {
+              // Close modal if clicking the backdrop (not the content)
+              if (e.target === e.currentTarget) {
+                handleClosePreview();
+              }
+            }}
+          >
+            <div className="fixed inset-0 overflow-auto">
+              <Preview 
+                previewId={selectedPreviewId} 
+                isModal={true} 
+                onClose={handleClosePreview}
+              />
+            </div>
           </div>
         )}
       </div>

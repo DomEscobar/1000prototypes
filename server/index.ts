@@ -537,7 +537,7 @@ api.post('/process-sequence/stream', async (c) => {
 
             // Add context from previous steps
             if (context) {
-              processedPrompt = `<Context from previous steps>\n${context} \n </Context from previous steps>\n\n` + processedPrompt
+              processedPrompt = `<Context>\n${context}\n</Context>\n\n` + processedPrompt
             }
 
             const fullProcessedPrompt = processedPrompt
@@ -604,7 +604,7 @@ api.post('/process-sequence/stream', async (c) => {
               })
 
               // Add this result to context for next prompts
-              context += `\nStep ${i + 1} output: ${response}`
+              context = response
 
               // Send step completion
               const stepCompleteData = JSON.stringify({
