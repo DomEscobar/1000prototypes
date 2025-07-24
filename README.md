@@ -31,7 +31,7 @@ The community has built agents for e-commerce sites, portfolios, SaaS landing pa
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/creative-ai-architects.git
+git clone https://github.com/DomEscobar/1000prototypes.git
 cd creative-ai-architects
 
 # Install dependencies
