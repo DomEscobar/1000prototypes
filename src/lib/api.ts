@@ -105,7 +105,7 @@ export interface ProcessSequenceResponse {
 // 2. Increment DEFAULT_AGENTS_VERSION by 1
 // 3. Existing users will get new/updated agents while keeping their customizations
 // 4. Only non-customized default agents will be updated automatically
-const DEFAULT_AGENTS_VERSION = 7;
+const DEFAULT_AGENTS_VERSION = 8;
 
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
