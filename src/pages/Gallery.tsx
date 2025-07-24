@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Eye, 
@@ -46,6 +47,8 @@ const Gallery = () => {
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedPreviewId, setSelectedPreviewId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     loadSavedOutputs();
@@ -93,11 +96,41 @@ const Gallery = () => {
     }
   };
 
+  const isDevModeEnabled = () => {
+    try {
+      return localStorage.getItem('dev') !== null;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setPendingDeleteId(id);
+    setDeleteConfirmText("");
+  };
+
+  const handleDeleteCancel = () => {
+    setPendingDeleteId(null);
+    setDeleteConfirmText("");
+  };
+
   const handleDelete = async (id: string) => {
+    // Check if dev mode protection is enabled
+    if (isDevModeEnabled() && deleteConfirmText !== "DELETE") {
+      toast({
+        title: "Delete protection active",
+        description: "Type 'DELETE' to confirm deletion in dev mode.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setDeletingId(id);
       await apiService.deleteSavedOutput(id);
       setSavedOutputs(prev => prev.filter(output => output.id !== id));
+      setPendingDeleteId(null);
+      setDeleteConfirmText("");
       toast({
         title: "Deleted successfully",
         description: "The saved output has been removed.",
@@ -374,13 +407,14 @@ const Gallery = () => {
                         View
                       </Button>
                       
-                      <AlertDialog>
+                      <AlertDialog open={pendingDeleteId === output.id} onOpenChange={(open) => !open && handleDeleteCancel()}>
                         <AlertDialogTrigger asChild>
                           <Button
                             variant="outline"
                             size="sm"
                             disabled={deletingId === output.id}
                             className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => handleDeleteClick(output.id)}
                           >
                             {deletingId === output.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -394,13 +428,30 @@ const Gallery = () => {
                             <AlertDialogTitle>Delete saved output?</AlertDialogTitle>
                             <AlertDialogDescription>
                               This will permanently delete "{output.title}" and cannot be undone.
+                              {isDevModeEnabled() && (
+                                <span className="block mt-2 text-amber-600 font-medium">
+                                  Dev mode protection active: Type "DELETE" below to confirm.
+                                </span>
+                              )}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
+                          {isDevModeEnabled() && (
+                            <div className="px-6">
+                              <Input
+                                placeholder="Type DELETE to confirm"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                className="mt-2"
+                                autoFocus
+                              />
+                            </div>
+                          )}
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel onClick={handleDeleteCancel}>Cancel</AlertDialogCancel>
                             <AlertDialogAction 
                               onClick={() => handleDelete(output.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              disabled={isDevModeEnabled() && deleteConfirmText !== "DELETE"}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                             >
                               Delete
                             </AlertDialogAction>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,11 +68,6 @@ function extractHTMLPreview(output: string): { preview: string; isHTML: boolean 
 export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatus }: AgentCardProps) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
-  
-  // Check if user has admin privileges
-  const isAdmin = useMemo(() => {
-    return localStorage.getItem('admin') !== null;
-  }, []);
 
   const handleRemove = async () => {
     setIsRemoving(true);
@@ -126,7 +121,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
   // Function to determine model display info
   const getModelInfo = () => {
     if (!agent.prompts || agent.prompts.length === 0) {
-      return { 
+      return {
         displayText: agent.model || 'Default',
         isMixed: false,
         models: []
@@ -135,11 +130,11 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
 
     const normalizedPrompts = normalizePrompts(agent.prompts);
     const defaultModel = agent.model || 'qwen/qwen3-coder';
-    
+
     // Get all models used (including default)
     const modelsUsed = normalizedPrompts.map(prompt => prompt.model || defaultModel);
     const uniqueModels = Array.from(new Set(modelsUsed));
-    
+
     if (uniqueModels.length === 1) {
       // All prompts use the same model
       return {
@@ -242,7 +237,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                 <div className="w-16 h-16 rounded-full border-4 border-border"></div>
                 <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-t-primary border-r-primary animate-spin m-auto"></div>
               </div>
-              
+
               {/* Progress Information */}
               {agent.buildProgress ? (
                 <div className="space-y-3">
@@ -255,15 +250,15 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                       {agent.buildProgress.stepDescription}
                     </p>
                   </div>
-                  
+
                   {/* Progress Bar with Step Completion */}
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${(agent.buildProgress.currentStep / agent.buildProgress.totalSteps) * 100}%` }}
                     />
                   </div>
-                  
+
                   {/* Character Count & Time */}
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
@@ -277,7 +272,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Live Progress Indicator */}
                   <div className="flex items-center justify-center gap-2">
                     <div className="flex space-x-1">
@@ -286,8 +281,8 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
                     <span className="text-xs font-medium text-primary">
-                      {agent.buildProgress.currentStep === agent.buildProgress.totalSteps 
-                        ? "Finalizing..." 
+                      {agent.buildProgress.currentStep === agent.buildProgress.totalSteps
+                        ? "Finalizing..."
                         : "Processing..."
                       }
                     </span>
@@ -334,8 +329,8 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                   {agent.provider}
                 </Badge>
               )}
-              <Badge 
-                variant={modelInfo.isMixed ? "default" : "outline"} 
+              <Badge
+                variant={modelInfo.isMixed ? "default" : "outline"}
                 className={`text-xs ${modelInfo.isMixed ? 'bg-gradient-primary text-primary-foreground' : ''}`}
                 title={modelInfo.isMixed ? `Uses: ${modelInfo.models.join(', ')}` : `Model: ${modelInfo.displayText}`}
               >
@@ -344,7 +339,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
               </Badge>
             </div>
           </div>
-          
+
           {/* Actions Row */}
           <div className="flex items-center justify-between gap-2">
             {/* Primary Action */}
@@ -358,52 +353,49 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                 View Full Output
               </Button>
             )}
-            
-            {/* Control Actions - Only show for admin users */}
-            {isAdmin && (
-              <div className="flex gap-2 flex-shrink-0">
-                <Button
-                  size="sm"
-                  variant={agent.status === 'active' ? 'default' : 'outline'}
-                  onClick={() => onToggleStatus(agent.id)}
-                  className={`h-9 px-3 ${
-                    agent.status === 'active' 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'hover:bg-primary hover:text-primary-foreground'
+
+            {/* Control Actions */}
+            <div className="flex gap-2 flex-shrink-0">
+              <Button
+                size="sm"
+                variant={agent.status === 'active' ? 'default' : 'outline'}
+                onClick={() => onToggleStatus(agent.id)}
+                className={`h-9 px-3 ${agent.status === 'active'
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'hover:bg-primary hover:text-primary-foreground'
                   }`}
-                  disabled={agent.isBuilding}
-                  title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}
-                >
-                  <Power className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onEdit(agent)}
-                  className="h-9 px-3 hover:bg-primary hover:text-primary-foreground"
-                  disabled={agent.isBuilding}
-                  title="Edit agent settings"
-                >
-                  <Settings className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRemove}
-                  className="h-9 px-3 hover:bg-destructive hover:text-destructive-foreground"
-                  disabled={agent.isBuilding || isRemoving}
-                  title="Delete agent"
-                >
-                  {isRemoving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            )}
+                disabled={agent.isBuilding}
+                title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}
+              >
+                <Power className="h-4 w-4" />
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(agent)}
+                className="h-9 px-3 hover:bg-primary hover:text-primary-foreground"
+                disabled={agent.isBuilding}
+                title="Edit agent settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRemove}
+                className="h-9 px-3 hover:bg-destructive hover:text-destructive-foreground"
+                disabled={agent.isBuilding || isRemoving}
+                title="Delete agent"
+              >
+                {isRemoving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </CardFooter>

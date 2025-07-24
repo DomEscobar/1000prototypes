@@ -29,58 +29,31 @@ const Index = () => {
 
   // Template suggestions organized by category
   const templateSuggestions = {
-    portfolio: {
-      title: "Portfolio & Personal",
+    landing: {
+      title: "Landing Pages",
       suggestions: [
-        "Create a stunning photographer portfolio with image galleries, client testimonials, and contact forms featuring smooth hover animations and lazy loading",
-        "Build a creative designer showcase website with interactive project case studies, skill animations, and a dark/light theme toggle",
-        "Design a personal blog platform with article search, category filtering, reading time estimates, and social media integration",
-        "Develop a freelancer landing page with service offerings, pricing tables, client reviews, and integrated booking system"
+        "Simple portfolio landing page with hero section, about, and contact form",
+        "Basic SaaS landing page with features, pricing, and signup",
+        "Restaurant landing page with menu and location",
+        "Personal blog with article list and simple navigation"
       ]
     },
-    business: {
-      title: "Business & Corporate",
+    apps: {
+      title: "Simple Apps",
       suggestions: [
-        "Create a modern SaaS landing page with feature highlights, pricing tiers, customer testimonials, and email signup integration",
-        "Build a professional corporate website with team bios, service pages, case studies, and multi-language support",
-        "Design a consulting firm site with expertise showcase, client success stories, blog section, and lead capture forms",
-        "Develop a startup pitch deck website with interactive timeline, investor information, and downloadable resources"
+        "Todo list app with add, edit, and delete functionality",
+        "Weather app showing current conditions and forecast",
+        "Calculator app with basic math operations",
+        "Image gallery with grid layout and lightbox"
       ]
     },
-    ecommerce: {
-      title: "E-commerce & Retail",
+    rooms: {
+      title: "3D Rooms",
       suggestions: [
-        "Build a fashion e-commerce store with product filtering, wishlist functionality, size guides, and shopping cart with saved items",
-        "Create a digital marketplace with vendor profiles, product comparisons, review systems, and secure payment integration",
-        "Design a subscription box service site with customization options, delivery tracking, and customer account management",
-        "Develop a local artisan shop with product storytelling, craftsperson profiles, and community features"
-      ]
-    },
-    hospitality: {
-      title: "Food & Hospitality",
-      suggestions: [
-        "Create an upscale restaurant website with interactive menu, table reservations, chef's specials, and virtual tour of dining areas",
-        "Build a food delivery platform with restaurant listings, real-time order tracking, customer reviews, and loyalty program",
-        "Design a coffee shop site with location finder, online ordering, barista profiles, and coffee education blog",
-        "Develop a catering service website with event planning tools, menu customization, and quote request system"
-      ]
-    },
-    creative: {
-      title: "Creative & Interactive",
-      suggestions: [
-        "Build an immersive 3D art gallery with virtual room navigation, artwork zoom features, artist information panels, and audio guides",
-        "Create an interactive music platform with playlist creation, artist discovery, concert listings, and social sharing features",
-        "Design a gaming community hub with leaderboards, player profiles, tournament brackets, and live chat integration",
-        "Develop a virtual event platform with breakout rooms, networking features, presentation tools, and recording capabilities"
-      ]
-    },
-    education: {
-      title: "Education & Learning",
-      suggestions: [
-        "Create an online course platform with progress tracking, interactive quizzes, discussion forums, and certificate generation",
-        "Build a language learning app with pronunciation practice, vocabulary games, progress analytics, and community features",
-        "Design a coding bootcamp website with curriculum showcase, student projects, instructor profiles, and application system",
-        "Develop a university department site with faculty research, course catalogs, student resources, and event calendar"
+        "Virtual office room with desk, computer, and bookshelf",
+        "Cozy living room with sofa, coffee table, and fireplace",
+        "Modern bedroom with bed, nightstand, and window view",
+        "Kitchen space with appliances, counter, and dining area"
       ]
     }
   };
