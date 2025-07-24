@@ -1025,10 +1025,26 @@ class ApiService {
 
 // Helper functions to work with both prompt formats
 export function normalizePrompts(prompts: string[] | PromptStep[]): PromptStep[] {
-  if (typeof prompts[0] === 'string') {
-    return (prompts as string[]).map(content => ({ content }));
+  if (!Array.isArray(prompts) || prompts.length === 0) {
+    return [{ content: "" }];
   }
-  return prompts as PromptStep[];
+
+  // Handle mixed arrays - normalize each element individually
+  return prompts.map(prompt => {
+    if (typeof prompt === 'string') {
+      // Legacy string format
+      return { content: String(prompt) };
+    } else if (prompt && typeof prompt === 'object') {
+      // PromptStep object format, ensure content is always a string
+      return {
+        ...prompt,
+        content: typeof prompt.content === 'string' ? prompt.content : String(prompt.content || "")
+      };
+    } else {
+      // Fallback for any unexpected format
+      return { content: String(prompt || "") };
+    }
+  });
 }
 
 export function getPromptContent(prompts: string[] | PromptStep[], index: number): string {

@@ -100,7 +100,7 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
         return;
       }
 
-      const filteredPrompts = prompts.filter(p => p.content?.trim());
+      const filteredPrompts = prompts.filter(p => typeof p.content === 'string' && p.content.trim());
       if (filteredPrompts.length === 0) {
         toast({
           title: "Prompts required",
