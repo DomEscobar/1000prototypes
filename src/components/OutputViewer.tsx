@@ -66,6 +66,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
   const [iframeKey, setIframeKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [savedPreviewUrl, setSavedPreviewUrl] = useState<string | null>(null);
 
   // Refresh iframe when modal opens
   useEffect(() => {
@@ -153,17 +154,12 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
       });
 
       const previewUrl = `/preview/${response.output.id}`;
+      setSavedPreviewUrl(previewUrl);
       
       toast({
         title: "Output saved!",
-        description: "Your output has been saved successfully. Opening preview...",
+        description: "Your output has been saved successfully. Preview link is now available below.",
       });
-
-      // Navigate to the preview page
-      navigate(previewUrl);
-      
-      // Close the modal
-      onClose();
     } catch (error) {
       console.error('Failed to save output:', error);
       toast({
@@ -173,6 +169,24 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleCopyPreviewLink = () => {
+    if (savedPreviewUrl) {
+      const fullUrl = `${window.location.origin}${savedPreviewUrl}`;
+      navigator.clipboard.writeText(fullUrl);
+      toast({
+        title: "Link copied!",
+        description: "Preview link has been copied to your clipboard.",
+      });
+    }
+  };
+
+  const handleOpenPreview = () => {
+    if (savedPreviewUrl) {
+      navigate(savedPreviewUrl);
+      onClose();
     }
   };
 
@@ -311,6 +325,42 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
             </div>
           )}
         </div>
+
+        {/* Saved Preview Link Panel */}
+        {savedPreviewUrl && (
+          <div className="border-t border-border p-3 sm:p-4 bg-secondary/30">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-medium text-foreground mb-1">Preview Link</h4>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded truncate max-w-[200px] sm:max-w-none">
+                    {window.location.origin}{savedPreviewUrl}
+                  </code>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPreviewLink}
+                  className="flex items-center gap-1"
+                >
+                  <Copy className="h-4 w-4" />
+                  <span className="hidden sm:inline">Copy Link</span>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleOpenPreview}
+                  className="flex items-center gap-1"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span className="hidden sm:inline">Open Preview</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
       
       {/* Log Modal */}

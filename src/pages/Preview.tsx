@@ -283,7 +283,7 @@ Instructions:
     }
     
     if (content.includes('<!DOCTYPE') || content.includes('<html')) {
-      return content.trim();
+      return content?.trim() || null;
     }
     
     return null;
