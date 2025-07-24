@@ -335,7 +335,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
             <Button
               onClick={handleSave}
               className={`bg-gradient-primary hover:opacity-90 ${isMobile ? 'w-full' : ''}`}
-              disabled={!name.trim() || prompts.filter(p => p.content.trim()).length === 0}
+              disabled={!name.trim() || prompts.filter(p => p.content?.trim()).length === 0}
             >
               {agent ? "Save Changes" : "Create Agent"}
             </Button>
