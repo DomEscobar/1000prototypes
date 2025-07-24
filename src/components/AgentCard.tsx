@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,11 @@ function extractHTMLPreview(output: string): { preview: string; isHTML: boolean 
 export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatus }: AgentCardProps) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  
+  // Check if user has admin privileges
+  const isAdmin = useMemo(() => {
+    return localStorage.getItem('admin') !== null;
+  }, []);
 
   const handleRemove = async () => {
     setIsRemoving(true);
@@ -354,49 +359,51 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
               </Button>
             )}
             
-            {/* Control Actions */}
-            <div className="flex gap-2 flex-shrink-0">
-              <Button
-                size="sm"
-                variant={agent.status === 'active' ? 'default' : 'outline'}
-                onClick={() => onToggleStatus(agent.id)}
-                className={`h-9 px-3 ${
-                  agent.status === 'active' 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'hover:bg-primary hover:text-primary-foreground'
-                }`}
-                disabled={agent.isBuilding}
-                title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}
-              >
-                <Power className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onEdit(agent)}
-                className="h-9 px-3 hover:bg-primary hover:text-primary-foreground"
-                disabled={agent.isBuilding}
-                title="Edit agent settings"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-              
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRemove}
-                className="h-9 px-3 hover:bg-destructive hover:text-destructive-foreground"
-                disabled={agent.isBuilding || isRemoving}
-                title="Delete agent"
-              >
-                {isRemoving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            {/* Control Actions - Only show for admin users */}
+            {isAdmin && (
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  size="sm"
+                  variant={agent.status === 'active' ? 'default' : 'outline'}
+                  onClick={() => onToggleStatus(agent.id)}
+                  className={`h-9 px-3 ${
+                    agent.status === 'active' 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'hover:bg-primary hover:text-primary-foreground'
+                  }`}
+                  disabled={agent.isBuilding}
+                  title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}
+                >
+                  <Power className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onEdit(agent)}
+                  className="h-9 px-3 hover:bg-primary hover:text-primary-foreground"
+                  disabled={agent.isBuilding}
+                  title="Edit agent settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRemove}
+                  className="h-9 px-3 hover:bg-destructive hover:text-destructive-foreground"
+                  disabled={agent.isBuilding || isRemoving}
+                  title="Delete agent"
+                >
+                  {isRemoving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </CardFooter>
