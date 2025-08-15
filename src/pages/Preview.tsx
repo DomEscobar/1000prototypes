@@ -742,9 +742,9 @@ Instructions:
 
   // Desktop: Sidebar layout
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Desktop Header */}
-      <div className="flex items-center justify-between py-3 px-6 border-b border-border">
+    <div className="min-h-screen bg-background flex flex-col page-container">
+      {/* Clean Desktop Header */}
+      <div className="flex items-center justify-between py-4 px-6 border-b border-border/50">
         <Button
           variant="ghost"
           onClick={handleBackNavigation}
@@ -754,16 +754,23 @@ Instructions:
           {isModal ? "Close Preview" : "Back to Home"}
         </Button>
         
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-foreground">{savedOutput.title}</h1>
-          <span className="text-sm text-muted-foreground">•</span>
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <Bot className="h-3 w-3" />
-            {savedOutput.agentName}
-          </span>
-          <Badge variant="outline" className="text-sm">
-            {savedOutput.model}
-          </Badge>
+        <div className="flex items-center gap-4">
+          <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+            <Eye className="h-5 w-5 text-white" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">{savedOutput.title}</h1>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Bot className="h-3 w-3" />
+                {savedOutput.agentName}
+              </span>
+              <span>•</span>
+              <Badge variant="outline" className="text-xs">
+                {savedOutput.model}
+              </Badge>
+            </div>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">

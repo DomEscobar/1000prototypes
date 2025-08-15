@@ -2,20 +2,23 @@ import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Download, Copy, ExternalLink, Code, Eye, AlertTriangle, RefreshCw, Edit, MoreHorizontal, FileText } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import { Download, Copy, ExternalLink, Code, Eye, AlertTriangle, RefreshCw, Edit, MoreHorizontal, FileText, Lock, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { apiService } from "@/lib/api";
 import { processHTMLForIframe } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { LogModal } from "./LogModal";
+import { PrivateHistoryManager } from "@/lib/privateHistory";
 
 interface OutputViewerProps {
   isOpen: boolean;
   onClose: () => void;
   agent: any | null;
   userRequest?: string;
+  onAgentUpdate?: (updatedAgent: any) => void;
 }
 
 // Function to extract HTML from response (similar to backend)
@@ -59,7 +62,7 @@ function extractHTMLFromOutput(output: string): { html: string; isHTML: boolean 
   return { html: output, isHTML: false };
 }
 
-export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputViewerProps) {
+export function OutputViewer({ isOpen, onClose, agent, userRequest, onAgentUpdate }: OutputViewerProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
@@ -67,13 +70,20 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
   const [isSaving, setIsSaving] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [savedPreviewUrl, setSavedPreviewUrl] = useState<string | null>(null);
+  const [editedHtml, setEditedHtml] = useState<string>('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Refresh iframe when modal opens
+  // Refresh iframe when modal opens and initialize edited HTML
   useEffect(() => {
     if (isOpen) {
       setIframeKey(prev => prev + 1);
+      if (agent?.output) {
+        const { html } = extractHTMLFromOutput(agent.output);
+        setEditedHtml(html);
+        setHasUnsavedChanges(false);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, agent?.output]);
 
   if (!agent?.output) return null;
 
@@ -87,9 +97,53 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
     });
   };
 
+  const handleHtmlChange = (value: string) => {
+    setEditedHtml(value);
+    setHasUnsavedChanges(value !== html);
+  };
+
+  const handleApplyChanges = () => {
+    if (agent && onAgentUpdate && isHTML) {
+      // Create updated output by replacing the HTML content
+      let updatedOutput = agent.output;
+      
+      // Try to find and replace HTML code blocks first
+      const codeBlockMatch = agent.output.match(/```html\s*([\s\S]*?)\s*```/i);
+      if (codeBlockMatch) {
+        updatedOutput = agent.output.replace(codeBlockMatch[1].trim(), editedHtml);
+      } else {
+        // Fallback to replacing the extracted HTML directly
+        updatedOutput = agent.output.replace(html, editedHtml);
+      }
+      
+      const updatedAgent = {
+        ...agent,
+        output: updatedOutput
+      };
+      onAgentUpdate(updatedAgent);
+    }
+    
+    setIframeKey(prev => prev + 1);
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Changes applied",
+      description: "Your HTML changes have been applied and saved.",
+    });
+  };
+
+  const handleResetChanges = () => {
+    setEditedHtml(html);
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Changes reset",
+      description: "HTML has been reset to the original version.",
+    });
+  };
+
   const handleCopyCode = () => {
     if (agent?.output) {
-      navigator.clipboard.writeText(isHTML ? html : agent.output);
+      const contentToCopy = isHTML ? (hasUnsavedChanges ? editedHtml : html) : agent.output;
+      navigator.clipboard.writeText(contentToCopy);
       toast({
         title: "Copied to clipboard",
         description: isHTML ? "HTML code has been copied to your clipboard." : "Content has been copied to your clipboard.",
@@ -99,7 +153,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
 
   const handleDownload = () => {
     if (agent?.output) {
-      const content = isHTML ? html : agent.output;
+      const content = isHTML ? (hasUnsavedChanges ? editedHtml : html) : agent.output;
       const fileExtension = isHTML ? 'html' : 'txt';
       const mimeType = isHTML ? 'text/html' : 'text/plain';
       
@@ -122,7 +176,8 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
 
   const handleOpenInNewTab = () => {
     if (agent?.output && isHTML) {
-      const blob = new Blob([processHTMLForIframe(html)], { type: 'text/html' });
+      const htmlToOpen = hasUnsavedChanges ? editedHtml : html;
+      const blob = new Blob([processHTMLForIframe(htmlToOpen)], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
     } else {
@@ -134,14 +189,14 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (isPrivate: boolean = false) => {
     if (!agent?.output) return;
 
     try {
       setIsSaving(true);
       
       const title = `${agent.name} - ${new Date().toLocaleDateString()}`;
-      const content = isHTML ? html : agent.output;
+      const content = isHTML ? (hasUnsavedChanges ? editedHtml : html) : agent.output;
       
       const response = await apiService.saveOutput({
         title,
@@ -150,15 +205,34 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
         agentName: agent.name,
         userRequest: userRequest || "No request provided",
         isHTML,
-        model: agent.model || 'gemini-2.0-flash'
+        model: agent.model || 'gemini-2.0-flash',
+        isPrivate
       });
 
       const previewUrl = `/preview/${response.output.id}`;
       setSavedPreviewUrl(previewUrl);
       
+      // If this is a private save, add to local history
+      if (isPrivate) {
+        const historyItem = {
+          id: response.output.id,
+          title,
+          agentId: agent.id,
+          agentName: agent.name,
+          userRequest: userRequest || "No request provided",
+          isHTML,
+          model: agent.model || 'gemini-2.0-flash',
+          createdAt: response.output.createdAt,
+          previewUrl,
+          contentPreview: PrivateHistoryManager.createContentPreview(content, isHTML)
+        };
+        
+        PrivateHistoryManager.addToHistory(historyItem);
+      }
+      
       toast({
         title: "Output saved!",
-        description: "Your output has been saved successfully. Preview link is now available below.",
+        description: `Your output has been saved ${isPrivate ? 'privately' : 'publicly'}. Preview link is now available below.`,
       });
     } catch (error) {
       console.error('Failed to save output:', error);
@@ -197,16 +271,39 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Primary actions - always visible */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-1 h-8 px-2 sm:px-3"
-              >
-                <Edit className="h-4 w-4" />
-                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isSaving}
+                    className="flex items-center gap-1 h-8 px-2 sm:px-3"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem 
+                    onClick={() => handleSave(false)} 
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    <Globe className="h-4 w-4" />
+                    Save Public
+                    <span className="text-xs text-muted-foreground ml-auto">Gallery</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => handleSave(true)} 
+                    disabled={isSaving}
+                    className="flex items-center gap-2"
+                  >
+                    <Lock className="h-4 w-4" />
+                    Save Private
+                    <span className="text-xs text-muted-foreground ml-auto">URL only</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               {/* Log button - show if agent has results or detailed steps */}
               {((agent?.results && agent.results.length > 0) || (agent?.detailedSteps && agent.detailedSteps.length > 0)) && (
@@ -293,7 +390,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
                 <Card className="p-0 overflow-hidden bg-white flex-1 max-w-[99vw]">
                   <iframe
                     key={iframeKey}
-                    srcDoc={processHTMLForIframe(html)}
+                    srcDoc={processHTMLForIframe(hasUnsavedChanges ? editedHtml : html)}
                     className="w-full h-full min-h-[75vh] sm:h-[70vh] max-w-full border-0"
                     title={`${agent.name} Output`}
                     sandbox="allow-scripts allow-same-origin allow-popups"
@@ -302,13 +399,38 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
               </div>
             ) : (
               <div className="space-y-2 sm:space-y-3 h-full flex flex-col">
-                <h3 className="text-sm font-medium text-foreground hidden sm:block">HTML Code</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-foreground">HTML Code</h3>
+                  {hasUnsavedChanges && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetChanges}
+                        className="flex items-center gap-1 h-8 px-2"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        <span className="hidden sm:inline">Reset</span>
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleApplyChanges}
+                        className="flex items-center gap-1 h-8 px-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="hidden sm:inline">Apply</span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <Card className="p-0 overflow-hidden flex-1">
-                  <pre className="bg-secondary/50 p-2 sm:p-4 text-xs overflow-auto h-[75vh] sm:h-[70vh] scrollbar-thin scrollbar-track-secondary scrollbar-thumb-muted-foreground">
-                    <code className="text-foreground whitespace-pre-wrap break-words">
-                      {html}
-                    </code>
-                  </pre>
+                  <Textarea
+                    value={editedHtml}
+                    onChange={(e) => handleHtmlChange(e.target.value)}
+                    className="h-[75vh] sm:h-[70vh] resize-none border-0 bg-secondary/50 font-mono text-xs leading-relaxed focus-visible:ring-0"
+                    placeholder="Edit your HTML code here..."
+                  />
                 </Card>
               </div>
             )

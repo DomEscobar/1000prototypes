@@ -1,0 +1,103 @@
+<Context>
+Of course. As a creative director and UI/UX designer, I see the Human Design body chart not just as data, but as a deeply personal energetic blueprint. The goal is to transform it from a static diagram into a living, breathing digital experience that feels both sacred and intuitive.
+
+Here is a detailed design concept for a clean, minimal, and creative Human Design body chart.
+
+---
+
+### **Project Title: The Celestial Blueprint**
+
+### 1) Overall Visual Theme and Mood
+
+The guiding theme is **"Energetic Architecture."** We are designing a digital space that feels like a serene, cosmic sanctuary. The mood is **ethereal, insightful, and profoundly personal.**
+
+Imagine interacting with a map of your soul that has been etched onto ancient parchment but illuminated by celestial light. The design will be spacious and uncluttered, using soft light, subtle gradients, and fluid motion to convey the flow of energy. We move away from a dense, technical diagram towards an interactive art piece. The user should feel a sense of calm, curiosity, and wonder as they explore their unique design.
+
+The overall aesthetic is a fusion of ancient wisdom and modern minimalism. It’s sophisticated, tactile, and reverent.
+
+### 2) Color Palette and Typography
+
+The color palette is built around the requested background, creating a warm, organic, and high-contrast experience.
+
+*   **Primary Background:** `Parchment (#DDCDBA)` - A warm, earthy, and gentle base that feels natural and timeless.
+*   **Primary Text & Structure:** `Charcoal (#33312E)` - A soft, deep black for primary text and the main lines of the body graph. It's easier on the eyes than pure black and complements the parchment beautifully.
+*   **Defined Energy (Channels & Centers):** `Cosmic Indigo (#4C518C)` - This deep, soulful indigo represents the consistent, defined energy. It contrasts powerfully with the parchment and suggests depth, intuition, and mystery.
+*   **Design Activations (Unconscious):** `Terracotta (#B5654C)` - A muted, earthy red for the "Design" or unconscious planetary activations. This color is grounded and strong, connecting to the physical body.
+*   **Personality Activations (Conscious):** `Charcoal (#33312E)` - We will use the main text color for the "Personality" or conscious activations, creating a clean, consistent look.
+*   **Highlight & Glow:** `Luminous Cream (#F5F0E8)` - A soft, off-white used for interactive highlights, glows, and subtle gradients, suggesting an inner light.
+
+**Typography:** The typography will create a clear hierarchy and maintain the elegant, clean aesthetic.
+
+*   **Headings (Name, Center Titles):** **Lora** - A contemporary serif with calligraphic roots. It’s elegant, warm, and highly readable, perfect for titles that need to feel both important and personal.
+    *   *Usage: User's Name, "Design," "Personality," and titles in the slide-in info panel.*
+*   **UI Text & Numbers:** **Inter** - A pristine, highly legible sans-serif designed specifically for user interfaces. Its neutrality and clarity make it perfect for all numerical data, labels, and descriptive text, ensuring information is accessible without distracting from the visual experience.
+    *   *Usage: All planetary gate numbers, body copy, and UI labels.*
+
+### 3) Layout Structure
+
+The layout is designed to be a full-screen, immersive experience, breaking away from the rigid three-column format of the original.
+
+1.  **The Canvas:** The central and largest part of the screen is dedicated entirely to the body chart itself. It sits atop the `Parchment` background, free of any boxes or borders. This is the sacred, interactive space.
+2.  **The Profile Header:** Positioned elegantly at the top center. It simply contains the user's name (e.g., "NILOUFAR") in the Lora typeface, and below it, their Human Design Type & Profile (e.g., "Manifesting Generator 5/1"). This gives immediate, high-level context.
+3.  **The Interactive Gates Panel:** Instead of two static columns, we use a single, elegant panel on the left. It features two clear tabs: **"Personality" (Conscious)** and **"Design" (Unconscious)**. Clicking a tab smoothly transitions the list of planetary gates. This saves 50% of the screen real estate, drastically reducing clutter. Each item in the list will be interactive.
+4.  **The Insight Panel:** This is a dynamic panel that is hidden by default. When the user clicks on any element of the chart (a Center, Channel, or Gate), this panel gracefully slides in from the right. It contains detailed, digestible information about the selected element, using beautiful typography and clear-cut sections. This keeps the user in the context of their chart while they learn.
+5.  **The Action Bar:** A minimalist, almost invisible bar at the bottom right corner. It contains three simple, clean icons: **Download (PDF)**, **Share**, and **Info/Guide** (which explains the different symbols and colors). These actions are secondary and kept out of the way to maintain focus on the chart.
+
+### 4) Interactive Elements and Animation Concepts
+
+Animation is used purposefully to bring the chart to life and guide the user's attention.
+
+*   **Initial Load Animation:** The page loads with just the empty body graph outline, drawn softly in `Charcoal`. Then, the Defined Centers gently fade in with a `Cosmic Indigo` gradient. Finally, the energy channels animate, with a soft line of light flowing from one gate to another, visually "activating" the connection. This creates a powerful "reveal" of the user's blueprint.
+*   **Living Centers:** Defined (colored) Centers will have a subtle, slow "breathing" animation—a gentle pulse where the inner gradient brightens and softens. This makes the chart feel alive and energetic. Undefined (white) centers remain static, beautifully emphasizing the contrast between consistent and open energy.
+*   **Energy Flow in Channels:** The defined channels (the lines connecting centers) will not be static fills. Instead, they will feature a slow, perpetually moving shimmer or light particle animation along their path, using the `Luminous Cream` color. This visually represents the constant flow of energy.
+*   **Hover & Focus:**
+    *   **On the Chart:** Hovering over a gate, channel, or center causes it to emit a soft `Luminous Cream` glow. Its corresponding number/data in the Gates Panel on the left will simultaneously be highlighted.
+    *   **On the Panel:** Hovering over a planetary gate in the left-hand panel will cause its corresponding gate on the body chart to glow. This creates an intuitive link between the data and its visual representation.
+*   **The "Insight" Transition:** When a user clicks on a center (e.g., the Sacral), the rest of the chart subtly desaturates and blurs by a tiny amount. The selected center remains sharp and vibrant. Simultaneously, the Insight Panel slides in smoothly from the right, creating a clear focus on the information being presented. Clicking the "close" button or outside the panel reverses this animation.
+
+### 5) User Journey and Experience Flow
+
+The user flow is designed to be a journey of discovery, from a broad overview to specific, deep insights.
+
+1.  **Arrival & The Reveal:** The user lands on their personal chart page. They are greeted by the calming `Parchment` background. The load animation plays, drawing their blueprint before their eyes. This moment is designed to create a sense of awe and personal connection. The high-level info (Name, Type) is immediately available at the top.
+2.  **Exploration & Curiosity:** The user sees their completed chart, alive with subtle motion. The clean layout invites exploration rather than overwhelming them. Their eyes are naturally drawn to the glowing, breathing `Cosmic Indigo` centers. They hover over one, and it brightens, with a tooltip appearing ("Throat Center").
+3.  **Deep Dive & Learning:** They click on the Throat Center. The world around it softly focuses out, and the **Insight Panel** glides in from the right. Here they find beautifully formatted text explaining what their *defined* Throat Center means. The language is supportive and empowering.
+4.  **Making Connections:** While reading, they see a reference to "Gate 16." They find Gate 16 in the **Interactive Gates Panel** on the left (under either Personality or Design). They click it. The chart instantly updates its focus to Gate 16, and the Insight Panel transitions seamlessly to display information about this specific gate. The flow is frictionless, encouraging a chain of discovery.
+5.  **Sharing & Integration:** After exploring their design, the user feels a sense of clarity. They click the **Download icon** in the corner. This generates a visually stunning, minimalist PDF of their chart and keynotes—a beautiful takeaway of their Celestial Blueprint that they can save or share.
+
+This design concept transforms the Human Design chart from a complex diagram into a personal, interactive, and beautiful experience that honors the depth of the system it represents.
+</Context>
+
+Original User Request:: Create me this human design body chart with clean minimal design like this background color is #DDCDBA  .
+
+You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.
+
+Take the design concept from the previous step and implement it as a complete, production-ready HTML file.
+
+Requirements:
+- Include Tailwind CSS: <script src="https://cdn.tailwindcss.com"></script>
+- Choose and include a matching Google Font: <link href="https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap" rel="stylesheet"> and set it as the default font family
+- **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization
+- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:
+  * Three.js: <script src="https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js"></script>
+  * GSAP: <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+ * Vivus.js: <script src="https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js"></script>
+  * Chart.js: <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  * Particles.js: <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  * Or any other libraries that enhance the functionality and user experience
+- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens
+- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)
+- Smooth animations and transitions
+- Clean, semantic HTML structure
+- Modern CSS techniques (Grid, Flexbox, Custom Properties)
+- Optimized performance
+- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:
+
+Format: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]
+
+Optional Parameters:
+• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)
+
+IMPORTANT: Use FIXED IDs in your code, not random generators!
+
+Deliver a complete, self-contained HTML file.

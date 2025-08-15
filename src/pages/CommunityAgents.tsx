@@ -202,23 +202,36 @@ const CommunityAgents = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background p-3 sm:p-6">
+        <div className="min-h-screen bg-background p-3 sm:p-6 page-container">
             <div className="max-w-7xl mx-auto">
-                {/* Navigation Header */}
-                <div className="flex items-center justify-between py-3 mb-4 border-b border-border">
+                {/* Clean Navigation Header */}
+                <div className="flex items-center justify-between py-4 mb-8 border-b border-border/50">
                     <Button
                         variant="ghost"
                         onClick={() => navigate('/')}
                         className="flex items-center gap-2 h-9 px-3"
                     >
                         <ArrowLeft className="h-4 w-4" />
-                        Back
+                        Back to Home
                     </Button>
 
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                            <Users className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                                Community
+                            </h1>
+                            <p className="text-xs text-muted-foreground hidden sm:block">
+                                Discover & share AI agents
+                            </p>
+                        </div>
+                    </div>
 
                     <Button
                         onClick={() => setIsSubmissionOpen(true)}
-                        className="bg-gradient-primary hover:opacity-90 h-9 px-4"
+                        className="bg-gradient-primary hover:opacity-90 hover:shadow-lg h-9 px-4 transition-all duration-200"
                     >
                         <Plus className="h-4 w-4 mr-2" />
                         Publish Agent

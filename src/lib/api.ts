@@ -45,6 +45,20 @@ export interface SavedOutput {
   isHTML: boolean;
   model: string;
   createdAt: string;
+  isPrivate: boolean;
+}
+
+export interface PrivateHistoryItem {
+  id: string;
+  title: string;
+  agentId: string;
+  agentName: string;
+  userRequest: string;
+  isHTML: boolean;
+  model: string;
+  createdAt: string;
+  previewUrl: string;
+  contentPreview?: string; // First 100 chars for preview
 }
 
 export interface CommunityAgent {

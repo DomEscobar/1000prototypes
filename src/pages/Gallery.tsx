@@ -282,7 +282,7 @@ const Gallery = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-6 page-container">
       <div className="max-w-7xl mx-auto">
         {/* Thin Navigation Header */}
         <div className="flex items-center justify-between py-3 mb-4 border-b border-border">
@@ -295,11 +295,18 @@ const Gallery = () => {
             Back to Home
           </Button>
           
-          <div className="flex items-center gap-2">
-            <GalleryIcon className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-semibold bg-gradient-primary bg-clip-text text-transparent">
-              Saved Outputs Gallery
-            </h1>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+              <GalleryIcon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                Gallery
+              </h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">
+                Saved outputs & creations
+              </p>
+            </div>
           </div>
           
           <div className="w-24"></div> {/* Spacer for balance */}
@@ -493,7 +500,7 @@ const Gallery = () => {
                           onClick={() => handlePageClick(page as number)}
                           className={`w-8 h-8 p-0 ${
                             currentPage === page 
-                              ? "bg-gradient-primary text-primary-foreground" 
+                              ? "bg-primary text-primary-foreground" 
                               : ""
                           }`}
                         >

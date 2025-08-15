@@ -6,15 +6,17 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings } from "lucide-react";
+import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings, History } from "lucide-react";
 import { AgentCard } from "@/components/AgentCard";
 import { Agent } from "@/lib/api";
 import { AgentSettingsModal } from "@/components/AgentSettingsModal";
 import { OutputViewer } from "@/components/OutputViewer";
 import { ApiKeySettings } from "@/components/ApiKeySettings";
+import { PrivateHistory } from "@/components/PrivateHistory";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
+import { PrivateHistoryManager } from "@/lib/privateHistory";
 
 const Index = () => {
   const { toast } = useToast();
@@ -31,6 +33,8 @@ const Index = () => {
   const [hasApiKey, setHasApiKey] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [hideInactiveAgents, setHideInactiveAgents] = useState(false);
+  const [isPrivateHistoryOpen, setIsPrivateHistoryOpen] = useState(false);
+  const [privateHistoryCount, setPrivateHistoryCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -38,6 +42,30 @@ const Index = () => {
   // Load agents from localStorage on component mount
   useEffect(() => {
     loadAgents();
+  }, []);
+
+  // Update private history count
+  useEffect(() => {
+    const updateHistoryCount = () => {
+      setPrivateHistoryCount(PrivateHistoryManager.getHistoryCount());
+    };
+    
+    updateHistoryCount();
+    
+    // Listen for storage changes to update count
+    const handleStorageChange = () => {
+      updateHistoryCount();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically since localStorage events don't fire for same-tab changes
+    const interval = setInterval(updateHistoryCount, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   // Check if API key is present
@@ -432,10 +460,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-6">
+    <div className="min-h-screen bg-background p-3 sm:p-6 page-container">
       <div className="max-w-7xl mx-auto">
-        {/* Thin Navigation Header */}
-        <div className="flex items-center justify-between py-3 mb-4 border-b border-border">
+        {/* Clean Navigation Header */}
+        <div className="flex items-center justify-between py-4 mb-8 border-b border-border/50">
           <div className="flex items-center gap-4">
             <div data-api-key-settings>
               <ApiKeySettings />
@@ -452,20 +480,36 @@ const Index = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-
+            <Button
+              variant="outline"
+              onClick={() => setIsPrivateHistoryOpen(true)}
+              className="flex items-center gap-2 h-9 px-3 hover:bg-primary/10 hover:text-primary hover:border-primary/50 relative"
+              title="Private History"
+            >
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Private</span>
+              {privateHistoryCount > 0 && (
+                <Badge 
+                  variant="secondary" 
+                  className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-xs bg-primary text-primary-foreground"
+                >
+                  {privateHistoryCount > 99 ? '99+' : privateHistoryCount}
+                </Badge>
+              )}
+            </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/community-agents')}
-              className="flex items-center gap-2 h-9 px-2 sm:px-3"
+              className="flex items-center gap-2 h-9 px-3 hover:bg-primary/10 hover:text-primary hover:border-primary/50"
               title="Community Agents"
             >
-              <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">Agents</span>
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Community</span>
             </Button>
             <Button
               variant="outline"
               onClick={() => navigate('/gallery')}
-              className="flex items-center gap-2 h-9 px-2 sm:px-3"
+              className="flex items-center gap-2 h-9 px-3 hover:bg-primary/10 hover:text-primary hover:border-primary/50"
               title="Gallery"
             >
               <Images className="h-4 w-4" />
@@ -475,7 +519,7 @@ const Index = () => {
         </div>
 
         {/* Input Section */}
-        <Card className=" bg-gradient-card border-border shadow-card">
+        <Card className="bg-gradient-card border-border shadow-card">
           <div className="p-4 sm:p-6">
             {/* Image preview area */}
             {selectedImages.length > 0 && (
@@ -508,7 +552,7 @@ const Index = () => {
                   value={request}
                   onChange={(e) => setRequest(e.target.value)}
                   placeholder={selectedImages.length > 0 ? "Describe what you want to create with these images..." : "Describe the website you want to create..."}
-                  className="bg-background border-border text-base sm:text-lg h-11 sm:h-12 pr-12"
+                  className="bg-background border-border text-base sm:text-lg h-12 sm:h-14 pr-12 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   onKeyDown={(e) => e.key === 'Enter' && handleSubmitRequest()}
                 />
                 {!request.trim() && selectedImages.length === 0 && (
@@ -516,7 +560,7 @@ const Index = () => {
                     variant="ghost"
                     size="sm"
                     onClick={triggerImageUpload}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-9 px-2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all"
                     title="Upload images"
                   >
                     <ImagePlus className="h-4 w-4" />
@@ -527,14 +571,14 @@ const Index = () => {
               <Button
                 onClick={handleSubmitRequest}
                 disabled={(!request.trim() && selectedImages.length === 0) || agents.some(a => a.isBuilding) || isSubmitting || agents.filter(a => a.prompts.length > 0 && a.status === 'active').length === 0}
-                className="bg-gradient-primary hover:opacity-90 h-11 sm:h-12 px-6 sm:px-8 w-full sm:w-auto"
+                className="bg-gradient-primary hover:opacity-90 hover:shadow-lg h-12 sm:h-14 px-6 sm:px-8 w-full sm:w-auto transition-all duration-200 rounded-lg font-medium"
               >
                 {isSubmitting || agents.some(a => a.isBuilding) ? (
                   <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 )}
-                {isSubmitting ? "Processing..." : "Submit"}
+                {isSubmitting ? "Processing..." : "Create"}
               </Button>
             </div>
 
@@ -542,8 +586,8 @@ const Index = () => {
         </Card>
 
         {/* Hide Inactive Agents Toggle */}
-        <div className="flex gap-2 my-2 ">
-          <div className="flex items-center gap-2 ">
+        <div className="flex justify-between items-center my-6">
+          <div className="flex items-center gap-3">
             <Switch
               id="hide-inactive"
               checked={hideInactiveAgents}
@@ -552,12 +596,17 @@ const Index = () => {
             />
             <Label
               htmlFor="hide-inactive"
-              className="text-sm text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1"
+              className="text-sm text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-2 font-medium"
             >
-              <EyeOff className="h-3 w-3" />
-              <span className="">Hide inactive</span>
+              <EyeOff className="h-4 w-4" />
+              Hide inactive agents
             </Label>
           </div>
+          {agents.length > 0 && (
+            <div className="text-sm text-muted-foreground">
+              {agents.filter(a => !hideInactiveAgents || a.status === 'active').length} of {agents.length} agents visible
+            </div>
+          )}
         </div>
 
         {/* Agents Grid */}
@@ -589,16 +638,23 @@ const Index = () => {
               ))}
 
             {/* Add Agent Card */}
-            <Card className="bg-gradient-card border-border border-dashed shadow-card hover:shadow-elegant transition-all duration-300 cursor-pointer group">
+            <Card className="bg-gradient-card border-border border-dashed shadow-card hover:shadow-elegant transition-all duration-300 cursor-pointer group min-h-[400px] flex items-center justify-center">
               <div
-                className="p-6 h-full flex items-center justify-center"
+                className="p-8 text-center w-full"
                 onClick={handleAddAgent}
               >
-                <div className="text-center">
-                  <Plus className="h-12 w-12 mx-auto mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <p className="text-muted-foreground group-hover:text-foreground transition-colors">
-                    Add New Agent
-                  </p>
+                <div className="space-y-4">
+                  <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Plus className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors mb-2">
+                      Add New Agent
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Create a custom AI agent with specific instructions and capabilities
+                    </p>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -606,16 +662,21 @@ const Index = () => {
         )}
 
         {/* Footer */}
-        <footer className="mt-12 pt-6 border-t border-border text-center">
-          <a
-            href="https://github.com/DomEscobar/1000prototypes.git"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            <Github className="h-4 w-4" />
-            Open Source
-          </a>
+        <footer className="mt-16 pt-8 border-t border-border/50 text-center">
+          <div className="space-y-4">
+            <a
+              href="https://github.com/DomEscobar/1000prototypes.git"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium"
+            >
+              <Github className="h-4 w-4" />
+              Open Source on GitHub
+            </a>
+            <p className="text-xs text-muted-foreground/80">
+              Build beautiful prototypes with AI-powered agents
+            </p>
+          </div>
         </footer>
 
       </div>
@@ -633,6 +694,12 @@ const Index = () => {
         onClose={() => setViewingAgent(null)}
         agent={viewingAgent}
         userRequest={request}
+        onAgentUpdate={setViewingAgent}
+      />
+
+      <PrivateHistory
+        isOpen={isPrivateHistoryOpen}
+        onClose={() => setIsPrivateHistoryOpen(false)}
       />
 
 

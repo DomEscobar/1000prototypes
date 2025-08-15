@@ -53,7 +53,7 @@ interface PromptStep {
 
 // Helper functions to work with both prompt formats
 function normalizePrompts(prompts: (string | PromptStep)[]): PromptStep[] {
-  return prompts.map(prompt => 
+  return prompts.map(prompt =>
     typeof prompt === 'string' ? { content: prompt } : prompt
   );
 }
@@ -87,7 +87,7 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
 
     // Build message content
     let messageContent: any;
-    
+
     if (images && images.length > 0) {
       // Multimodal message with images
       messageContent = [
@@ -96,7 +96,7 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
           text: prompt
         }
       ];
-      
+
       // Add images to content
       for (const image of images) {
         messageContent.push({
@@ -110,6 +110,7 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
       // Text-only message
       messageContent = prompt;
     }
+
 
     const messages = [
       {
@@ -149,6 +150,7 @@ interface SavedOutput {
   isHTML: boolean;
   model: string;
   createdAt: string;
+  isPrivate: boolean;
 }
 
 // Community Agent interface
@@ -538,7 +540,6 @@ api.post('/process-sequence/stream', async (c) => {
 
   try {
     const { prompts, userRequest, model: modelName, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
-
     // Set up Server-Sent Events headers
     c.header('Content-Type', 'text/plain; charset=utf-8')
     c.header('Cache-Control', 'no-cache')
@@ -628,7 +629,7 @@ api.post('/process-sequence/stream', async (c) => {
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
               const provider = "openrouter";
-              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
               let response = ''
               let thinking = ''
@@ -804,7 +805,7 @@ api.post('/process-sequence', async (c) => {
 
       try {
         const provider = "openrouter";
-        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
         let response = ''
         let thinking = ''
@@ -1034,14 +1035,17 @@ const SavedOutputSchema = z.object({
   agentName: z.string().min(1, 'Agent name is required'),
   userRequest: z.string().min(1, 'User request is required'),
   isHTML: z.boolean(),
-  model: z.string().min(1, 'Model is required')
+  model: z.string().min(1, 'Model is required'),
+  isPrivate: z.boolean().default(false)
 })
 
-// Get all saved outputs
+// Get all saved outputs (public only for gallery)
 api.get('/saved-outputs', async (c) => {
   try {
     const outputs = await savedOutputsDB.getAllOutputs();
-    return c.json({ outputs });
+    // Filter out private outputs for the public gallery
+    const publicOutputs = outputs.filter(output => !output.isPrivate);
+    return c.json({ outputs: publicOutputs });
   } catch (error) {
     console.error('Get saved outputs error:', error);
     return c.json({ error: 'Failed to retrieve saved outputs' }, 500);

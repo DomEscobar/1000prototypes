@@ -256,7 +256,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                   {/* Progress Bar with Step Completion */}
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500 ease-out"
+                      className="h-full bg-gradient-primary rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${(agent.buildProgress.currentStep / agent.buildProgress.totalSteps) * 100}%` }}
                     />
                   </div>
@@ -296,7 +296,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                   <p className="text-xs text-muted-foreground">This may take a few moments</p>
                   {/* Fallback progress bar */}
                   <div className="w-32 h-2 bg-muted rounded-full mx-auto overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-primary to-accent rounded-full animate-pulse" />
+                    <div className="h-full bg-gradient-primary rounded-full animate-pulse" />
                   </div>
                 </div>
               )}
@@ -333,7 +333,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
               )}
               <Badge
                 variant={modelInfo.isMixed ? "default" : "outline"}
-                className={`text-xs ${modelInfo.isMixed ? 'bg-gradient-primary text-primary-foreground' : ''}`}
+                className={`text-xs ${modelInfo.isMixed ? 'bg-primary text-primary-foreground' : ''}`}
                 title={modelInfo.isMixed ? `Uses: ${modelInfo.models.join(', ')}` : `Model: ${modelInfo.displayText}`}
               >
                 {modelInfo.isMixed && <Bot className="h-3 w-3 mr-1" />}
