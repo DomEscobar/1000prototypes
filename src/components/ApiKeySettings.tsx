@@ -9,24 +9,31 @@ import { Settings, Key, Eye, EyeOff, ExternalLink, AlertTriangle } from "lucide-
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
 
-// LocalStorage key for OpenRouter API key
+// LocalStorage keys for OpenRouter API key and base URL
 const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter-api-key';
+const OPENROUTER_BASE_URL_STORAGE_KEY = 'openrouter-base-url';
 
 export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(open);
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("https://openrouter.ai/api/v1");
   const [showOpenRouterKey, setShowOpenRouterKey] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
 
   useEffect(() => {
-    // Load existing API key on component mount
+    // Load existing API key and base URL on component mount
     const existingOpenRouterKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY);
+    const existingBaseUrl = localStorage.getItem(OPENROUTER_BASE_URL_STORAGE_KEY);
     
     if (existingOpenRouterKey) {
       setOpenRouterApiKey(existingOpenRouterKey);
       setHasOpenRouterKey(true);
+    }
+    
+    if (existingBaseUrl) {
+      setBaseUrl(existingBaseUrl);
     }
   }, []);
 
@@ -43,6 +50,19 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
     }
   };
 
+  const saveBaseUrl = (value: string) => {
+    try {
+      if (value.trim()) {
+        localStorage.setItem(OPENROUTER_BASE_URL_STORAGE_KEY, value.trim());
+      } else {
+        localStorage.removeItem(OPENROUTER_BASE_URL_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Error saving base URL:', error);
+      throw new Error('Failed to save base URL');
+    }
+  };
+
   const handleSaveOpenRouterKey = async () => {
     if (!openRouterApiKey.trim()) {
       toast({
@@ -53,21 +73,35 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
       return;
     }
 
+    if (!baseUrl.trim()) {
+      toast({
+        title: "Base URL Required",
+        description: "Please enter a valid base URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       saveApiKey(openRouterApiKey);
+      saveBaseUrl(baseUrl);
       apiService.setApiKey(openRouterApiKey);
+      apiService.setBaseUrl(baseUrl);
       setHasOpenRouterKey(true);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('apiKeyUpdated'));
       
       toast({
         title: "Success",
-        description: "OpenRouter API key saved successfully",
+        description: "API settings saved successfully",
       });
     } catch (error) {
-      console.error('Failed to save OpenRouter API key:', error);
+      console.error('Failed to save API settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save OpenRouter API key",
+        description: "Failed to save API settings",
         variant: "destructive",
       });
     } finally {
@@ -78,19 +112,25 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
   const handleClearOpenRouterKey = () => {
     try {
       localStorage.removeItem(OPENROUTER_API_KEY_STORAGE_KEY);
+      localStorage.removeItem(OPENROUTER_BASE_URL_STORAGE_KEY);
       apiService.clearApiKey();
+      apiService.clearBaseUrl();
       setOpenRouterApiKey("");
+      setBaseUrl("https://openrouter.ai/api/v1");
       setHasOpenRouterKey(false);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('apiKeyUpdated'));
       
       toast({
         title: "Success", 
-        description: "OpenRouter API key cleared successfully",
+        description: "API settings cleared successfully",
       });
     } catch (error) {
-      console.error('Failed to clear OpenRouter API key:', error);
+      console.error('Failed to clear API settings:', error);
       toast({
         title: "Error",
-        description: "Failed to clear OpenRouter API key",
+        description: "Failed to clear API settings",
         variant: "destructive",
       });
     }
@@ -112,7 +152,7 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
             API Key Configuration
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Configure your OpenRouter API key to enable AI-powered features
+            Configure your API settings including base URL and API key to enable AI-powered features
           </DialogDescription>
         </DialogHeader>
 
@@ -130,9 +170,9 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">OpenRouter API Key</h3>
+                  <h3 className="text-lg font-semibold text-foreground">API Configuration</h3>
                   <p className="text-sm text-muted-foreground">
-                    Required for accessing multiple AI models through OpenRouter
+                    Configure the API endpoint and key for accessing AI models
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -146,6 +186,21 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
 
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="base-url" className="text-foreground">Base URL</Label>
+                  <Input
+                    id="base-url"
+                    type="text"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    placeholder="https://openrouter.ai/api/v1"
+                    className="bg-background border-border"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The API endpoint URL. Default is OpenRouter's URL.
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="openrouter-key" className="text-foreground">API Key</Label>
                   <div className="relative">
                     <Input
@@ -153,7 +208,7 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
                       type={showOpenRouterKey ? "text" : "password"}
                       value={openRouterApiKey}
                       onChange={(e) => setOpenRouterApiKey(e.target.value)}
-                      placeholder="Enter your OpenRouter API key"
+                      placeholder="Enter your API key"
                       className="bg-background border-border pr-20"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -177,10 +232,10 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
                 <div className="flex items-center gap-3 flex-wrap">
                   <Button
                     onClick={handleSaveOpenRouterKey}
-                    disabled={isLoading || !openRouterApiKey.trim()}
+                    disabled={isLoading || !openRouterApiKey.trim() || !baseUrl.trim()}
                     className="bg-gradient-primary hover:opacity-90"
                   >
-                    {isLoading ? "Saving..." : "Save Key"}
+                    {isLoading ? "Saving..." : "Save Settings"}
                   </Button>
                   
                   {hasOpenRouterKey && (
@@ -189,7 +244,7 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
                       onClick={handleClearOpenRouterKey}
                       className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      Clear Key
+                      Clear Settings
                     </Button>
                   )}
                   

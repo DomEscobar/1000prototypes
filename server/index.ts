@@ -15,13 +15,14 @@ interface ModelConfig {
   provider: ModelProvider
   model: string
   apiKey?: string
+  baseUrl?: string
 }
 
-// Function to get OpenRouter client with custom API key or fallback to default
-function getOpenRouter(apiKey?: string): OpenAI {
+// Function to get OpenRouter client with custom API key and baseURL or fallback to default
+function getOpenRouter(apiKey?: string, baseUrl?: string): OpenAI {
   if (apiKey && apiKey.trim()) {
     return new OpenAI({
-      baseURL: "https://openrouter.ai/api/v1",
+      baseURL: baseUrl?.trim() || "https://openrouter.ai/api/v1",
       apiKey: apiKey.trim(),
       defaultHeaders: {
         "HTTP-Referer": "https://1000prototypes.com",
@@ -76,17 +77,44 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
   maxTokens?: number
   stream?: boolean
   thinking?: boolean
+  images?: string[]
 }): Promise<any> {
-  const { provider, model, apiKey } = config
-  const { temperature = 1, maxTokens = 999999, stream = false } = options
+  const { provider, model, apiKey, baseUrl } = config
+  const { temperature = 1, maxTokens = 999999, stream = false, images } = options
 
   if (provider === 'openrouter') {
-    const openRouter = getOpenRouter(apiKey)
+    const openRouter = getOpenRouter(apiKey, baseUrl)
+
+    // Build message content
+    let messageContent: any;
+    
+    if (images && images.length > 0) {
+      // Multimodal message with images
+      messageContent = [
+        {
+          type: 'text',
+          text: prompt
+        }
+      ];
+      
+      // Add images to content
+      for (const image of images) {
+        messageContent.push({
+          type: 'image_url',
+          image_url: {
+            url: image
+          }
+        });
+      }
+    } else {
+      // Text-only message
+      messageContent = prompt;
+    }
 
     const messages = [
       {
         role: 'user' as const,
-        content: prompt
+        content: messageContent
       }
     ]
 
@@ -503,11 +531,13 @@ api.post('/process-sequence/stream', async (c) => {
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
-    apiKey: z.string().optional()
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional(),
+    images: z.array(z.string()).optional()
   })
 
   try {
-    const { prompts, userRequest, model: modelName, apiKey } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
 
     // Set up Server-Sent Events headers
     c.header('Content-Type', 'text/plain; charset=utf-8')
@@ -598,7 +628,7 @@ api.post('/process-sequence/stream', async (c) => {
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
               const provider = "openrouter";
-              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
 
               let response = ''
               let thinking = ''
@@ -732,13 +762,15 @@ api.post('/process-sequence', async (c) => {
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
-    apiKey: z.string().optional()
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional(),
+    images: z.array(z.string()).optional()
   })
 
 
 
   try {
-    const { prompts, userRequest, model: modelName, apiKey } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
 
     const results: string[] = []
     const detailedSteps: ProcessStep[] = []
@@ -772,7 +804,7 @@ api.post('/process-sequence', async (c) => {
 
       try {
         const provider = "openrouter";
-        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key') }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
+        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts })
 
         let response = ''
         let thinking = ''
@@ -840,11 +872,13 @@ api.post('/chat', async (c) => {
     message: z.string().min(1, 'Message is required'),
     context: z.string().optional(),
     systemPrompt: z.string().optional(),
-    apiKey: z.string().optional()
+    images: z.array(z.string()).optional(),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional()
   })
 
   try {
-    const { message, context, systemPrompt, apiKey } = ChatSchema.parse(body)
+    const { message, context, systemPrompt, images, apiKey, baseUrl } = ChatSchema.parse(body)
 
     // Build the full prompt
     let fullPrompt = ''
@@ -861,8 +895,8 @@ api.post('/chat', async (c) => {
 
     // Generate response using default model
     const provider = 'openrouter'
-    const model = 'qwen/qwen3-coder'
-    const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key') }, fullPrompt, { stream: true, thinking: true })
+    const model = 'google/gemini-2.5-pro' // Use multimodal model for image support
+    const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
 
     let response = ''
 
@@ -901,11 +935,13 @@ api.post('/chat/stream', async (c) => {
     message: z.string().min(1, 'Message is required'),
     context: z.string().optional(),
     systemPrompt: z.string().optional(),
-    apiKey: z.string().optional()
+    images: z.array(z.string()).optional(),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional()
   })
 
   try {
-    const { message, context, systemPrompt, apiKey } = ChatSchema.parse(body)
+    const { message, context, systemPrompt, images, apiKey, baseUrl } = ChatSchema.parse(body)
 
     // Build the full prompt
     let fullPrompt = ''
@@ -931,8 +967,8 @@ api.post('/chat/stream', async (c) => {
       async start(controller) {
         try {
           const provider = 'openrouter'
-          const model = 'qwen/qwen3-coder'
-          const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key') }, fullPrompt, { stream: true, thinking: true })
+          const model = 'google/gemini-2.5-pro' // Use multimodal model for image support
+          const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
 
           // Stream the response
           if (provider === 'openrouter') {

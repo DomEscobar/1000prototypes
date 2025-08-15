@@ -9,7 +9,9 @@ import {
   User, 
   Loader2, 
   RotateCcw,
-  Wand2
+  Wand2,
+  ImagePlus,
+  X
 } from "lucide-react";
 import { apiService } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +23,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   isApplied?: boolean;
+  images?: string[]; // Array of image URLs or base64 data
 }
 
 interface ChatInterfaceProps {
@@ -41,7 +44,9 @@ const ChatInterface = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const scrollToBottom = () => {
@@ -52,18 +57,79 @@ const ChatInterface = ({
     scrollToBottom();
   }, [messages]);
 
+  // Handle image file selection
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newImages: string[] = [];
+    const promises = Array.from(files).map((file) => {
+      return new Promise<void>((resolve) => {
+        // Check if file is an image
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Invalid file type",
+            description: "Please select only image files.",
+            variant: "destructive"
+          });
+          resolve();
+          return;
+        }
+
+        // Check file size (5MB limit)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "File too large", 
+            description: "Please select images smaller than 5MB.",
+            variant: "destructive"
+          });
+          resolve();
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result as string);
+          }
+          resolve();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(promises).then(() => {
+      setSelectedImages(prev => [...prev, ...newImages]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    });
+  };
+
+  // Remove selected image
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Trigger file input
+  const triggerImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+    if ((!inputMessage.trim() && selectedImages.length === 0) || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: inputMessage,
-      timestamp: new Date()
+      timestamp: new Date(),
+      images: selectedImages.length > 0 ? [...selectedImages] : undefined
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
+    setSelectedImages([]);
     setIsLoading(true);
 
     // Create placeholder assistant message for streaming
@@ -107,6 +173,7 @@ Instructions:
         inputMessage,
         context,
         systemPrompt,
+        userMessage.images,
         // onChunk callback - update message in real-time
         (chunk: string) => {
           fullResponse += chunk;
@@ -417,6 +484,22 @@ Instructions:
                         ? 'bg-primary text-primary-foreground ml-auto' 
                         : 'bg-secondary/50'
                     }`}>
+                      {/* Display images if present */}
+                      {message.images && message.images.length > 0 && (
+                        <div className="mb-3 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {message.images.map((image, index) => (
+                              <img 
+                                key={index} 
+                                src={image} 
+                                alt={`Uploaded image ${index + 1}`}
+                                className="rounded border max-h-32 w-full object-cover"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="text-sm whitespace-pre-wrap break-words">
                         {message.content}
                         {message.role === 'assistant' && isLoading && message.content === '' && (
@@ -461,20 +544,57 @@ Instructions:
 
       {/* Input */}
       <div className="p-4 border-t border-border bg-secondary/30 flex-shrink-0">
+        {/* Image preview area */}
+        {selectedImages.length > 0 && (
+          <div className="mb-3 p-2 bg-background rounded-lg border">
+            <div className="flex flex-wrap gap-2">
+              {selectedImages.map((image, index) => (
+                <div key={index} className="relative">
+                  <img 
+                    src={image} 
+                    alt={`Selected image ${index + 1}`}
+                    className="h-16 w-16 object-cover rounded border"
+                  />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={triggerImageUpload}
+            disabled={isLoading}
+            className="px-3 flex-shrink-0"
+          >
+            <ImagePlus className="h-4 w-4" />
+          </Button>
+          
           <Input
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Ask AI to modify your ${isHTML ? 'HTML' : 'content'}...`}
+            placeholder={`Ask AI to modify your ${isHTML ? 'HTML' : 'content'}${selectedImages.length > 0 ? ' or describe the images' : ''}...`}
             disabled={isLoading}
             className="flex-1 bg-background"
           />
+          
           <Button
             onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || isLoading}
+            disabled={(!inputMessage.trim() && selectedImages.length === 0) || isLoading}
             size="sm"
-            className="px-3"
+            className="px-3 flex-shrink-0"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -483,6 +603,16 @@ Instructions:
             )}
           </Button>
         </div>
+        
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageUpload}
+          className="hidden"
+        />
       </div>
     </div>
   );

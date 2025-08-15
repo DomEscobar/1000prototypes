@@ -16,7 +16,8 @@ import {
   Globe,
   Maximize2,
   RefreshCw,
-  Power
+  Power,
+  Copy
 } from "lucide-react";
 
 import { ProcessStep, Agent, PromptStep, normalizePrompts } from "@/lib/api";
@@ -28,6 +29,7 @@ interface AgentCardProps {
   onRemove: (agentId: string) => void;
   onViewOutput: (agent: Agent) => void;
   onToggleStatus: (agentId: string) => void;
+  onCopy: (agent: Agent) => void;
 }
 
 // Function to extract HTML preview from output
@@ -65,7 +67,7 @@ function extractHTMLPreview(output: string): { preview: string; isHTML: boolean 
   return { preview: textPreview, isHTML: false };
 }
 
-export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatus }: AgentCardProps) => {
+export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatus, onCopy }: AgentCardProps) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
 
@@ -368,6 +370,17 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                 title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}
               >
                 <Power className="h-4 w-4" />
+              </Button>
+
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onCopy(agent)}
+                className="h-9 px-3 hover:bg-primary hover:text-primary-foreground"
+                disabled={agent.isBuilding}
+                title="Copy agent"
+              >
+                <Copy className="h-4 w-4" />
               </Button>
 
               <Button

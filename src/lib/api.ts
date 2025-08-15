@@ -1,7 +1,8 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// LocalStorage key for API key
+// LocalStorage keys for API key and base URL
 const API_KEY_STORAGE_KEY = 'openrouter-api-key';
+const BASE_URL_STORAGE_KEY = 'openrouter-base-url';
 
 // Enhanced prompt interface to support per-prompt models
 export interface PromptStep {
@@ -78,6 +79,8 @@ export interface ProcessSequenceRequest {
   userRequest: string;
   model?: string; // Default model if not specified per prompt
   apiKey?: string;
+  baseUrl?: string; // Support for configurable base URL
+  images?: string[]; // Support for image URLs or base64 data
 }
 
 export interface ProcessStep {
@@ -110,10 +113,25 @@ const DEFAULT_AGENTS_VERSION = 12;
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
   {
+    id: "2",
+    name: "Creative Web Designer",
+    description: "AI agent specialized in creating stunning web designs with unique animations and user experiences",
+    status: "active",
+    prompts: [
+      {
+        model: "google/gemini-2.5-flash-lite",
+        content: "You are a world-class creative director and UI/UX designer known for crazy abstract creative websites with innovative animations and user experiences.\n\nAnalyze this request: {USER_REQUEST}.\n\nCreate a detailed design concept including:\n1) Overall visual theme and mood\n2) Color palette and typography\n3) Layout structure with at least 5 main sections\n4) Interactive elements and animation concepts\n5) User journey and experience flow.\n\nFocus on creativity, innovation, and visual impact."
+      }, "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens\n- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nDeliver a complete, self-contained HTML file."
+    ],
+    model: "qwen/qwen3-coder",
+    provider: "openrouter",
+    createdAt: new Date().toISOString()
+  },
+  {
     id: "3",
     name: "Collaborative Dev Team",
     description: "AI agent simulating a 4-step collaborative development process: analysis, architecture, dual development, and integration",
-    status: "active",
+    status: "inactive",
     prompts: [
       "Step 1: Requirements Analyst & System Architect\n\nYou are a senior requirements analyst and system architect. Your task is to deeply understand the user's request and create a comprehensive technical specification.\n\nUser Request: {USER_REQUEST}\n\nProvide a detailed analysis and architectural plan:\n1) Problem Definition - what exactly needs to be built?\n2) Functional Requirements - what features and capabilities are needed?\n3) Technical Requirements - what technologies and standards should be used?\n4) System Architecture - how should the solution be structured?\n5) Component Breakdown - what are the main parts/modules needed?\n6) Data Flow - how will information move through the system?\n7) UI/UX Specifications - what should the user experience look like?\n8) Development Guidelines - what coding standards and principles should be followed?\n\nCreate a clear technical specification that will guide the development team.",
       {
@@ -155,21 +173,6 @@ const DEFAULT_AGENTS: Agent[] = [
         model: "google/gemini-2.5-flash-lite"
       },
       "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\n**IMPORTANT: Your HTML will be rendered inside an iframe for security and isolation. Design and code with iframe context in mind.**\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience - design and develop for mobile devices first, then scale up to larger screens.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\nEnsure the design is fully responsive across all device sizes (mobile, tablet, desktop).\n\n**Iframe-specific considerations:**\n- When using GSAP ScrollTrigger, ensure it works within iframe context\n- For scroll-based animations, use the iframe's window and document\n- Implement smooth scrolling for anchor links within the iframe\n- Consider iframe viewport constraints in responsive design\n- Avoid code that attempts to break out of iframe security context\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * GSAP ScrollTrigger: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nResponse me the single HTML file now, optimized for iframe rendering:"
-    ],
-    model: "moonshotai/kimi-k2",
-    provider: "openrouter",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "2",
-    name: "Creative Web Designer",
-    description: "AI agent specialized in creating stunning web designs with unique animations and user experiences",
-    status: "inactive",
-    prompts: [
-      {
-        model: "google/gemini-2.5-flash-lite",
-        content: "You are a world-class creative director and UI/UX designer known for crazy abstract creative websites with innovative animations and user experiences.\n\nAnalyze this request: {USER_REQUEST}.\n\nCreate a detailed design concept including:\n1) Overall visual theme and mood\n2) Color palette and typography\n3) Layout structure with at least 5 main sections\n4) Interactive elements and animation concepts\n5) User journey and experience flow.\n\nFocus on creativity, innovation, and visual impact."
-      }, "You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.\n\nTake the design concept from the previous step and implement it as a complete, production-ready HTML file.\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family\n- **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens\n- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)\n- Smooth animations and transitions\n- Clean, semantic HTML structure\n- Modern CSS techniques (Grid, Flexbox, Custom Properties)\n- Optimized performance\n- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nDeliver a complete, self-contained HTML file."
     ],
     model: "moonshotai/kimi-k2",
     provider: "openrouter",
@@ -518,6 +521,37 @@ class ApiService {
     }
   }
 
+  // Base URL Management
+  getBaseUrl(): string | null {
+    try {
+      return localStorage.getItem(BASE_URL_STORAGE_KEY);
+    } catch (error) {
+      console.error('Error reading base URL from localStorage:', error);
+      return null;
+    }
+  }
+
+  setBaseUrl(baseUrl: string): void {
+    try {
+      if (baseUrl.trim()) {
+        localStorage.setItem(BASE_URL_STORAGE_KEY, baseUrl.trim());
+      } else {
+        localStorage.removeItem(BASE_URL_STORAGE_KEY);
+      }
+    } catch (error) {
+      console.error('Error saving base URL to localStorage:', error);
+      throw new Error('Failed to save base URL');
+    }
+  }
+
+  clearBaseUrl(): void {
+    try {
+      localStorage.removeItem(BASE_URL_STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing base URL from localStorage:', error);
+    }
+  }
+
   // Get OpenRouter API key (only provider now)
   getProviderApiKey(provider?: 'openrouter'): string | null {
     return this.getApiKey();
@@ -695,12 +729,14 @@ class ApiService {
   async chat(
     message: string,
     context?: string,
-    systemPrompt?: string
+    systemPrompt?: string,
+    images?: string[]
   ): Promise<{ response: string; timestamp: string }> {
     const apiKey = this.getApiKey();
+    const baseUrl = this.getBaseUrl();
     return this.request('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message, context, systemPrompt, apiKey }),
+      body: JSON.stringify({ message, context, systemPrompt, images, apiKey, baseUrl }),
     });
   }
 
@@ -709,6 +745,7 @@ class ApiService {
     message: string,
     context?: string,
     systemPrompt?: string,
+    images?: string[],
     onChunk?: (chunk: string) => void,
     onComplete?: () => void,
     onError?: (error: string) => void
@@ -717,13 +754,14 @@ class ApiService {
 
     try {
       const apiKey = this.getApiKey();
+      const baseUrl = this.getBaseUrl();
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(apiKey && { 'X-API-Key': apiKey }),
         },
-        body: JSON.stringify({ message, context, systemPrompt, apiKey }),
+        body: JSON.stringify({ message, context, systemPrompt, images, apiKey, baseUrl }),
       });
 
       if (!response.ok) {
@@ -815,11 +853,17 @@ class ApiService {
   // Process prompt sequence
   async processPromptSequence(request: ProcessSequenceRequest): Promise<ProcessSequenceResponse> {
     const fallbackApiKey = this.getApiKey();
+    const baseUrl = this.getBaseUrl();
     const requestBody = { ...request };
 
     // Use fallback API key only if no API key is provided in request
     if (!requestBody.apiKey && fallbackApiKey) {
       requestBody.apiKey = fallbackApiKey;
+    }
+
+    // Add baseURL to request
+    if (baseUrl) {
+      requestBody.baseUrl = baseUrl;
     }
 
     return this.request('/api/process-sequence', {
@@ -840,11 +884,17 @@ class ApiService {
 
     try {
       const fallbackApiKey = this.getApiKey();
+      const baseUrl = this.getBaseUrl();
       const requestBody = { ...request };
 
       // Use fallback API key only if no API key is provided in request
       if (!requestBody.apiKey && fallbackApiKey) {
         requestBody.apiKey = fallbackApiKey;
+      }
+
+      // Add baseURL to request
+      if (baseUrl) {
+        requestBody.baseUrl = baseUrl;
       }
 
       const response = await fetch(url, {
@@ -996,7 +1046,8 @@ class ApiService {
   async buildWithAgentStreaming(
     agentId: string,
     userRequest: string,
-    onProgress?: (step: number, description: string, characterCount: number, output?: string) => void
+    onProgress?: (step: number, description: string, characterCount: number, output?: string) => void,
+    images?: string[]
   ): Promise<{ output: string; results: string[]; detailedSteps: ProcessStep[] }> {
     return new Promise((resolve, reject) => {
       try {
@@ -1016,7 +1067,8 @@ class ApiService {
         const requestData: ProcessSequenceRequest = {
           prompts: agent.prompts,
           userRequest,
-          model: agent.model || 'qwen/qwen3-coder'
+          model: agent.model || 'qwen/qwen3-coder',
+          images
         };
 
         // Only add apiKey if it exists

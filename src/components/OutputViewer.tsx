@@ -205,7 +205,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest }: OutputView
                 className="flex items-center gap-1 h-8 px-2 sm:px-3"
               >
                 <Edit className="h-4 w-4" />
-                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Edit"}</span>
+                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
               </Button>
               
               {/* Log button - show if agent has results or detailed steps */}
