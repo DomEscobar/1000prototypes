@@ -17,7 +17,11 @@ export interface Agent {
   status: 'active' | 'inactive';
   prompts: any[]; // Support both legacy string[] and new PromptStep[]
   model?: string; // Default model for the agent (fallback for prompts without specific model)
-  provider?: 'openrouter';
+  provider?: 'openrouter' | 'wavespeed';
+  wavespeedConfig?: {
+    size?: string;          // e.g., "1024*1024", "2048*2048", "512*768"
+    outputFormat?: string;  // e.g., "png", "jpg", "webp"
+  };
   createdAt?: string;
   updatedAt?: string;
   lastActive?: string;
@@ -122,7 +126,7 @@ export interface ProcessSequenceResponse {
 // 2. Increment DEFAULT_AGENTS_VERSION by 1
 // 3. Existing users will get new/updated agents while keeping their customizations
 // 4. Only non-customized default agents will be updated automatically
-const DEFAULT_AGENTS_VERSION = 12;
+const DEFAULT_AGENTS_VERSION = 13;
 
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
@@ -230,6 +234,30 @@ const DEFAULT_AGENTS: Agent[] = [
     ],
     model: "google/gemini-2.5-flash-lite",
     provider: "openrouter",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "image-gen-1",
+    name: "AI Image Creator",
+    description: "Creates stunning AI-generated images from text descriptions using Wavespeed API (Bytedance SeeDream V4)",
+    status: "inactive",
+    prompts: [
+      "{USER_REQUEST}, highly detailed, professional photography, 8K resolution, sharp focus, vibrant colors, stunning composition"
+    ],
+    model: "bytedance/seedream-v4",
+    provider: "wavespeed",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "image-edit-1",
+    name: "AI Image Editor",
+    description: "Transforms and edits uploaded images using AI (requires image upload + description of desired changes)",
+    status: "inactive",
+    prompts: [
+      "{USER_REQUEST}, highly detailed, professional photography, 8K resolution, sharp focus, vibrant colors, stunning composition"
+    ],
+    model: "bytedance/seedream-v4",
+    provider: "wavespeed",
     createdAt: new Date().toISOString()
   }
 ];
@@ -399,7 +427,7 @@ class LocalAgentService {
       ...agentData,
       id: Date.now().toString(),
       status: 'active',
-      provider: 'openrouter',
+      provider: agentData.provider || 'openrouter', // Use provided provider or default to openrouter
       createdAt: new Date().toISOString()
     };
 
@@ -421,7 +449,6 @@ class LocalAgentService {
       ...agents[agentIndex],
       ...updates,
       id, // Ensure ID doesn't change
-      provider: 'openrouter', // Ensure provider is always openrouter
       updatedAt: new Date().toISOString()
     };
 
@@ -1063,7 +1090,7 @@ class ApiService {
     onProgress?: (step: number, description: string, characterCount: number, output?: string) => void,
     images?: string[]
   ): Promise<{ output: string; results: string[]; detailedSteps: ProcessStep[] }> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         // Get the agent from localStorage
         const agentResponse = this.localAgentService.getAgent(agentId);
@@ -1074,58 +1101,221 @@ class ApiService {
           return;
         }
 
-        // Get the OpenRouter API key
-        const apiKey = this.getApiKey();
-
-        // Prepare request data
-        const requestData: ProcessSequenceRequest = {
-          prompts: agent.prompts,
-          userRequest,
-          model: agent.model || 'qwen/qwen3-coder',
-          images
-        };
-
-        // Only add apiKey if it exists
-        if (apiKey) {
-          requestData.apiKey = apiKey;
-        }
-
-        // Use the streaming endpoint for real-time progress
-        this.processPromptSequenceStream(
-          requestData,
-          // onProgress callback
-          (step, totalSteps, description, characterCount) => {
-            if (onProgress) {
-              // step is 1-based from backend, but frontend expects 0-based for calculation
-              onProgress(step - 1, description, characterCount);
-            }
-          },
-          // onStepComplete callback
-          (step, stepResult) => {
-            if (onProgress) {
-              onProgress(step - 1, `Step ${step} completed`, stepResult.length, stepResult);
-            }
-          },
-          // onComplete callback
-          (processResult) => {
-            const finalOutput = processResult.hasHTML ? processResult.extractedHTML : processResult.finalOutput;
-            resolve({
-              output: finalOutput,
-              results: processResult.results,
-              detailedSteps: processResult.detailedSteps || []
-            });
-          },
-          // onError callback
-          (error) => {
-            reject(new Error(error));
+        // Check if this is a Wavespeed image generation agent
+        if (agent.provider === 'wavespeed') {
+          // Handle Wavespeed image generation
+          if (onProgress) {
+            onProgress(0, 'Generating image...', 0);
           }
-        );
+
+          // Process prompt - just use the user request directly as the image prompt
+          let finalPrompt = userRequest;
+
+          // Now generate the image using Wavespeed
+          try {
+            const imageResult = await this.generateImage({
+              prompt: finalPrompt,
+              model: agent.model || 'bytedance/seedream-v4',
+              size: agent.wavespeedConfig?.size || '1024*1024',
+              outputFormat: agent.wavespeedConfig?.outputFormat || 'png',
+              images: images // Pass uploaded images for editing
+            });
+
+            if (onProgress) {
+              onProgress(1, 'Image generated successfully!', finalPrompt.length, imageResult.imageUrl);
+            }
+
+            // Return the image URL as HTML for full-screen display
+            const imageHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Image</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .download-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1f2937;
+      text-decoration: none;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .download-btn:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+    .download-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <img src="${imageResult.imageUrl}" alt="AI Generated Image" />
+  <a href="${imageResult.imageUrl}" class="download-btn" download>
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    Download
+  </a>
+</body>
+</html>`;
+
+            resolve({
+              output: imageHTML,
+              results: [finalPrompt, imageResult.imageUrl],
+              detailedSteps: [{
+                stepNumber: 1,
+                originalPrompt: userRequest,
+                fullProcessedPrompt: finalPrompt,
+                response: imageResult.imageUrl,
+                characterCount: finalPrompt.length,
+                model: agent.model
+              }]
+            });
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            reject(new Error(`Image generation failed: ${errorMessage}\n\nMake sure you have set your Wavespeed API key in the API Settings.`));
+          }
+        } else {
+          // Original OpenRouter text generation flow
+          const apiKey = this.getApiKey();
+
+          // Prepare request data
+          const requestData: ProcessSequenceRequest = {
+            prompts: agent.prompts,
+            userRequest,
+            model: agent.model || 'qwen/qwen3-coder',
+            images
+          };
+
+          // Only add apiKey if it exists
+          if (apiKey) {
+            requestData.apiKey = apiKey;
+          }
+
+          // Use the streaming endpoint for real-time progress
+          this.processPromptSequenceStream(
+            requestData,
+            // onProgress callback
+            (step, totalSteps, description, characterCount) => {
+              if (onProgress) {
+                // step is 1-based from backend, but frontend expects 0-based for calculation
+                onProgress(step - 1, description, characterCount);
+              }
+            },
+            // onStepComplete callback
+            (step, stepResult) => {
+              if (onProgress) {
+                onProgress(step - 1, `Step ${step} completed`, stepResult.length, stepResult);
+              }
+            },
+            // onComplete callback
+            (processResult) => {
+              const finalOutput = processResult.hasHTML ? processResult.extractedHTML : processResult.finalOutput;
+              resolve({
+                output: finalOutput,
+                results: processResult.results,
+                detailedSteps: processResult.detailedSteps || []
+              });
+            },
+            // onError callback
+            (error) => {
+              reject(new Error(error));
+            }
+          );
+        }
 
       } catch (error) {
         console.error('buildWithAgentStreaming error:', error);
         reject(error);
       }
     });
+  }
+
+  // Generate image using Wavespeed API
+  async generateImage(request: {
+    prompt: string
+    model: string
+    size?: string
+    outputFormat?: string
+    images?: string[]
+    apiKey?: string
+  }): Promise<{ imageUrl: string; result: any; timestamp: string }> {
+    const apiKey = request.apiKey || this.getWavespeedApiKey() || this.getApiKey()
+    
+    const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(apiKey && { 'X-API-Key': apiKey })
+      },
+      body: JSON.stringify(request)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.details || errorData.error || `Image generation failed: ${response.statusText}`)
+    }
+    
+    return await response.json()
+  }
+
+  // Get Wavespeed API key from localStorage
+  getWavespeedApiKey(): string | null {
+    try {
+      return localStorage.getItem('wavespeed-api-key')
+    } catch (error) {
+      console.error('Error reading Wavespeed API key:', error)
+      return null
+    }
+  }
+
+  // Save Wavespeed API key to localStorage
+  saveWavespeedApiKey(apiKey: string): void {
+    try {
+      if (apiKey.trim()) {
+        localStorage.setItem('wavespeed-api-key', apiKey.trim())
+      } else {
+        localStorage.removeItem('wavespeed-api-key')
+      }
+    } catch (error) {
+      console.error('Error saving Wavespeed API key:', error)
+      throw new Error('Failed to save Wavespeed API key')
+    }
   }
 }
 

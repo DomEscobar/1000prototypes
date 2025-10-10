@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings, History } from "lucide-react";
+import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings, History, Trash2 } from "lucide-react";
 import { AgentCard } from "@/components/AgentCard";
 import { Agent } from "@/lib/api";
 import { AgentSettingsModal } from "@/components/AgentSettingsModal";
@@ -17,6 +17,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { PrivateHistoryManager } from "@/lib/privateHistory";
+
+// Constants
+const MAX_IMAGES = 5;
+const MAX_IMAGE_SIZE_MB = 5;
+const MAX_COMPRESSED_SIZE_MB = 1;
 
 const Index = () => {
   const { toast } = useToast();
@@ -29,12 +34,14 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   const [hasApiKey, setHasApiKey] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [hideInactiveAgents, setHideInactiveAgents] = useState(false);
   const [isPrivateHistoryOpen, setIsPrivateHistoryOpen] = useState(false);
   const [privateHistoryCount, setPrivateHistoryCount] = useState(0);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -95,53 +102,124 @@ const Index = () => {
     };
   }, []);
 
-  // Handle image file selection
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newImages: string[] = [];
-    const promises = Array.from(files).map((file) => {
-      return new Promise<void>((resolve) => {
-        // Check if file is an image
-        if (!file.type.startsWith('image/')) {
-          toast({
-            title: "Invalid file type",
-            description: "Please select only image files.",
-            variant: "destructive"
-          });
-          resolve();
-          return;
-        }
-
-        // Check file size (5MB limit)
-        if (file.size > 5 * 1024 * 1024) {
-          toast({
-            title: "File too large",
-            description: "Please select images smaller than 5MB.",
-            variant: "destructive"
-          });
-          resolve();
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push(e.target.result as string);
+  // Image compression utility function
+  const compressImage = async (file: File, maxSizeMB: number = MAX_COMPRESSED_SIZE_MB): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions to maintain aspect ratio
+          const maxDimension = 1920;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = (height / width) * maxDimension;
+              width = maxDimension;
+            } else {
+              width = (width / height) * maxDimension;
+              height = maxDimension;
+            }
           }
-          resolve();
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Adjust quality for file size
+          let quality = 0.8;
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          
+          // Reduce quality if still too large
+          while (dataUrl.length > maxSizeMB * 1024 * 1024 && quality > 0.1) {
+            quality -= 0.1;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+          
+          resolve(dataUrl);
         };
-        reader.readAsDataURL(file);
-      });
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
     });
+  };
 
-    Promise.all(promises).then(() => {
-      setSelectedImages(prev => [...prev, ...newImages]);
+  // Handle image file selection with improved error handling
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Check if adding these images would exceed the limit
+    if (selectedImages.length + files.length > MAX_IMAGES) {
+      toast({
+        title: "Too many images",
+        description: `You can upload a maximum of ${MAX_IMAGES} images. Currently selected: ${selectedImages.length}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingImages(true);
+    const validImages: string[] = [];
+    const errors: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        try {
+          // Validate type
+          if (!file.type.startsWith('image/')) {
+            errors.push(`${file.name}: Invalid file type`);
+            continue;
+          }
+          
+          // Validate size
+          if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+            errors.push(`${file.name}: File too large (max ${MAX_IMAGE_SIZE_MB}MB)`);
+            continue;
+          }
+          
+          // Compress and process image
+          const dataUrl = await compressImage(file);
+          validImages.push(dataUrl);
+          
+        } catch (error) {
+          errors.push(`${file.name}: Failed to process`);
+        }
+      }
+      
+      if (validImages.length > 0) {
+        setSelectedImages(prev => [...prev, ...validImages]);
+        toast({
+          title: "Images uploaded",
+          description: `Successfully added ${validImages.length} image(s).`,
+        });
+      }
+      
+      if (errors.length > 0) {
+        toast({
+          title: errors.length === files.length ? "All images failed" : "Some images failed",
+          description: errors.slice(0, 3).join(', ') + (errors.length > 3 ? ` and ${errors.length - 3} more...` : ''),
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsUploadingImages(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    });
+    }
   };
 
   // Remove selected image
@@ -149,9 +227,46 @@ const Index = () => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Clear all images
+  const clearAllImages = () => {
+    setSelectedImages([]);
+    toast({
+      title: "Images cleared",
+      description: "All selected images have been removed.",
+    });
+  };
+
   // Trigger file input
   const triggerImageUpload = () => {
     fileInputRef.current?.click();
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      // Create a synthetic event to reuse handleImageUpload
+      const event = {
+        target: { files }
+      } as React.ChangeEvent<HTMLInputElement>;
+      handleImageUpload(event);
+    }
   };
 
   const loadAgents = async () => {
@@ -524,19 +639,35 @@ const Index = () => {
             {/* Image preview area */}
             {selectedImages.length > 0 && (
               <div className="mb-4 p-3 bg-background rounded-lg border">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {selectedImages.length} of {MAX_IMAGES} images selected
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllImages}
+                    className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    Clear all
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {selectedImages.map((image, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="relative group">
                       <img
                         src={image}
                         alt={`Selected image ${index + 1}`}
-                        className="h-20 w-20 object-cover rounded border"
+                        className="h-20 w-20 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setPreviewImage(image)}
+                        title="Click to preview"
                       />
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full"
+                        className="absolute -top-1 -right-1 h-5 w-5 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -546,31 +677,50 @@ const Index = () => {
               </div>
             )}
 
+            {/* Loading indicator for image upload */}
+            {isUploadingImages && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground bg-background/50 p-3 rounded-lg border">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing images...
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <div className="flex-1 relative">
+              <div 
+                className={`flex-1 relative transition-all duration-200 ${isDragging ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Input
                   value={request}
                   onChange={(e) => setRequest(e.target.value)}
-                  placeholder={selectedImages.length > 0 ? "Describe what you want to create with these images..." : "Describe the website you want to create..."}
+                  placeholder={selectedImages.length > 0 ? "Describe what you want to create with these images..." : "Describe the website you want to create... or drag & drop images"}
                   className="bg-background border-border text-base sm:text-lg h-12 sm:h-14 pr-12 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmitRequest()}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmitRequest()}
                 />
-                {!request.trim() && selectedImages.length === 0 && (
+                {!request.trim() && selectedImages.length === 0 && !isDragging && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={triggerImageUpload}
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all"
                     title="Upload images"
+                    disabled={isUploadingImages}
                   >
                     <ImagePlus className="h-4 w-4" />
                   </Button>
+                )}
+                {isDragging && (
+                  <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center pointer-events-none">
+                    <p className="text-primary font-medium">Drop images here</p>
+                  </div>
                 )}
               </div>
 
               <Button
                 onClick={handleSubmitRequest}
-                disabled={(!request.trim() && selectedImages.length === 0) || agents.some(a => a.isBuilding) || isSubmitting || agents.filter(a => a.prompts.length > 0 && a.status === 'active').length === 0}
+                disabled={(!request.trim() && selectedImages.length === 0) || agents.some(a => a.isBuilding) || isSubmitting || isUploadingImages || agents.filter(a => a.prompts.length > 0 && a.status === 'active').length === 0}
                 className="bg-gradient-primary hover:opacity-90 hover:shadow-lg h-12 sm:h-14 px-6 sm:px-8 w-full sm:w-auto transition-all duration-200 rounded-lg font-medium"
               >
                 {isSubmitting || agents.some(a => a.isBuilding) ? (
@@ -702,7 +852,23 @@ const Index = () => {
         onClose={() => setIsPrivateHistoryOpen(false)}
       />
 
-
+      {/* Image Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Image Preview</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <div className="w-full flex items-center justify-center">
+              <img 
+                src={previewImage} 
+                alt="Full preview" 
+                className="w-full h-auto max-h-[70vh] object-contain rounded-lg"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Hidden file input */}
       <input

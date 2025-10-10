@@ -22,14 +22,18 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
-  const [provider, setProvider] = useState<'openrouter'>('openrouter');
+  const [provider, setProvider] = useState<'openrouter' | 'wavespeed'>('openrouter');
   const [model, setModel] = useState("");
   const [prompts, setPrompts] = useState<PromptStep[]>([]);
+  
+  // Wavespeed-specific configuration
+  const [imageSize, setImageSize] = useState('1024*1024');
+  const [outputFormat, setOutputFormat] = useState('png');
   
   // New state for expanded textarea modal
   const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null);
   const [expandedPromptValue, setExpandedPromptValue] = useState("");
-  const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");
+  const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");   
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -39,8 +43,12 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setName(agent.name);
       setDescription(agent.description || "");
       setStatus(agent.status || "active");
-      setProvider("openrouter");
-      setModel(agent.model || "qwen/qwen3-coder");
+      setProvider(agent.provider || "openrouter");
+      setModel(agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'));
+      
+      // Load Wavespeed configuration
+      setImageSize(agent.wavespeedConfig?.size || '1024*1024');
+      setOutputFormat(agent.wavespeedConfig?.outputFormat || 'png');
       
       // Convert legacy string[] format to PromptStep[] format
       const normalizedPrompts = normalizePrompts(agent.prompts || [""]);
@@ -51,6 +59,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setStatus("active");
       setProvider("openrouter");
       setModel("qwen/qwen3-coder");
+      setImageSize('1024*1024');
+      setOutputFormat('png');
       setPrompts([{ content: "" }]);
     }
   }, [agent, isOpen]);
@@ -116,8 +126,12 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       name: name || "New Agent",
       description: description || "",
       status: status,
-      provider: "openrouter",
-      model: model.trim() || "qwen/qwen3-coder",
+      provider: provider,
+      model: model.trim() || (provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'),
+      wavespeedConfig: provider === 'wavespeed' ? {
+        size: imageSize,
+        outputFormat: outputFormat
+      } : undefined,
       prompts: filteredPrompts,
       isBuilding: false,
       output: agent?.output || null,
@@ -188,6 +202,35 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
               </Select>
             </div>
 
+            {/* Provider Selection */}
+            <div className="space-y-2">
+              <Label className="text-foreground">Provider</Label>
+              <Select value={provider} onValueChange={(value) => setProvider(value as 'openrouter' | 'wavespeed')}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  <SelectItem 
+                    value="openrouter"
+                    className="focus:bg-accent focus:text-accent-foreground"
+                  >
+                    🤖 OpenRouter - Text Generation
+                  </SelectItem>
+                  <SelectItem 
+                    value="wavespeed"
+                    className="focus:bg-accent focus:text-accent-foreground"
+                  >
+                    🎨 Wavespeed - Image Generation
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {provider === 'openrouter' 
+                  ? 'OpenRouter provides access to various text generation models (websites, code, content)'
+                  : 'Wavespeed provides AI image generation and editing capabilities'}
+              </p>
+            </div>
+
             {/* Default Model Selection */}
             <div className="space-y-2">
               <Label htmlFor="agent-model" className="text-foreground">
@@ -197,13 +240,71 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                 id="agent-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
+                placeholder={
+                  provider === 'wavespeed' 
+                    ? "e.g., bytedance/seedream-v4, google/nano-banana/text-to-image"
+                    : "e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
+                }
                 className="bg-background border-border"
               />
               <p className="text-xs text-muted-foreground">
-                This model will be used for prompts that don't specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite
+                {provider === 'wavespeed'
+                  ? 'Wavespeed models: bytedance/seedream-v4 (text-to-image & editing), google/nano-banana/text-to-image'
+                  : 'This model will be used for prompts that don\'t specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite'}
               </p>
             </div>
+
+            {/* Wavespeed Configuration - Only show if provider is wavespeed */}
+            {provider === 'wavespeed' && (
+              <div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <h4 className="font-medium text-purple-900 dark:text-purple-100 text-sm flex items-center gap-2">
+                  🎨 Image Generation Settings
+                </h4>
+                
+                {/* Size Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="image-size" className="text-foreground">Output Size</Label>
+                  <Select value={imageSize} onValueChange={setImageSize}>
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select image size" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="512*512">512×512 (Square - Fast)</SelectItem>
+                      <SelectItem value="1024*1024">1024×1024 (Square - Standard) ⭐</SelectItem>
+                      <SelectItem value="2048*2048">2048×2048 (Square - High Quality)</SelectItem>
+                      <SelectItem value="768*1024">768×1024 (Portrait)</SelectItem>
+                      <SelectItem value="1024*768">1024×768 (Landscape)</SelectItem>
+                      <SelectItem value="1536*2048">1536×2048 (Portrait - Large)</SelectItem>
+                      <SelectItem value="2048*1536">2048×1536 (Landscape - Large)</SelectItem>
+                      <SelectItem value="2048*3072">2048×3072 (Portrait - XL)</SelectItem>
+                      <SelectItem value="3072*2048">3072×2048 (Landscape - XL)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Larger sizes take longer but produce higher quality images. Standard (1024×1024) recommended.
+                  </p>
+                </div>
+                
+                {/* Output Format */}
+                <div className="space-y-2">
+                  <Label htmlFor="output-format" className="text-foreground">Output Format</Label>
+                  <Select value={outputFormat} onValueChange={setOutputFormat}>
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select output format" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      <SelectItem value="png">PNG (Best quality, lossless, larger file) ⭐</SelectItem>
+                      <SelectItem value="jpg">JPG (Good quality, smaller file)</SelectItem>
+                      <SelectItem value="jpeg">JPEG (Same as JPG)</SelectItem>
+                      <SelectItem value="webp">WebP (Modern format, best compression)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    PNG recommended for best quality. JPG/WebP for smaller file sizes.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Prompt Sequence */}
             <div className="space-y-3">
@@ -305,17 +406,30 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
               </div>
 
               {/* Prompt Sequence Help */}
-              <div className={`bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg ${isMobile ? 'p-3' : 'p-4'} mb-6`}>
-                <h4 className={`font-medium text-blue-900 dark:text-blue-100 mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>
-                  How Prompt Sequences Work
+              <div className={`${provider === 'wavespeed' ? 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800' : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'} border rounded-lg ${isMobile ? 'p-3' : 'p-4'} mb-6`}>
+                <h4 className={`font-medium ${provider === 'wavespeed' ? 'text-purple-900 dark:text-purple-100' : 'text-blue-900 dark:text-blue-100'} mb-2 ${isMobile ? 'text-sm' : 'text-sm'}`}>
+                  {provider === 'wavespeed' ? 'How Wavespeed Image Generation Works' : 'How Prompt Sequences Work'}
                 </h4>
-                <div className={`text-blue-700 dark:text-blue-300 space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  <p>• Each prompt in the sequence is executed in order when processing a request</p>
-                  <p>• Use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">{"{USER_REQUEST}"}</code> to insert the user's request into your prompts</p>
-                  <p>• Previous prompt outputs are automatically passed as context to subsequent prompts</p>
-                  <p>• Each prompt can use a different AI model - perfect for specialized tasks</p>
-                  <p>• Leave model field empty to use the default model for that step</p>
-                  <p>• The final prompt's output is shown as the agent's result</p>
+                <div className={`${provider === 'wavespeed' ? 'text-purple-700 dark:text-purple-300' : 'text-blue-700 dark:text-blue-300'} space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  {provider === 'wavespeed' ? (
+                    <>
+                      <p>• Your prompt will be used to generate an optimized image generation prompt first</p>
+                      <p>• Use <code className="bg-purple-100 dark:bg-purple-900 px-1 rounded">{"{USER_REQUEST}"}</code> to reference the user's description</p>
+                      <p>• The agent creates a detailed artistic prompt, then generates the image via Wavespeed</p>
+                      <p>• For image editing: users can upload images that will be transformed based on your prompt</p>
+                      <p>• Result will be displayed as a beautiful HTML page with the generated image</p>
+                      <p>• Make sure to set your Wavespeed API key in Settings before using</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>• Each prompt in the sequence is executed in order when processing a request</p>
+                      <p>• Use <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">{"{USER_REQUEST}"}</code> to insert the user's request into your prompts</p>
+                      <p>• Previous prompt outputs are automatically passed as context to subsequent prompts</p>
+                      <p>• Each prompt can use a different AI model - perfect for specialized tasks</p>
+                      <p>• Leave model field empty to use the default model for that step</p>
+                      <p>• The final prompt's output is shown as the agent's result</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

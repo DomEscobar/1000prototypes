@@ -9,13 +9,24 @@ import path from 'path'
 import { randomUUID } from 'crypto'
 
 // Provider types
-type ModelProvider = 'openrouter'
+type ModelProvider = 'openrouter' | 'wavespeed'
 
 interface ModelConfig {
   provider: ModelProvider
   model: string
   apiKey?: string
   baseUrl?: string
+}
+
+interface WavespeedModelConfig {
+  provider: 'wavespeed'
+  model: string
+  apiKey?: string
+  baseUrl?: string
+  size?: string
+  outputFormat?: string
+  enableBase64Output?: boolean
+  enableSyncMode?: boolean
 }
 
 // Function to get OpenRouter client with custom API key and baseURL or fallback to default
@@ -32,6 +43,62 @@ function getOpenRouter(apiKey?: string, baseUrl?: string): OpenAI {
   }
 
   throw new Error('No OpenRouter API key provided. Please set your API key in the application settings or provide an OPEN_ROUTER environment variable.')
+}
+
+// Function to get Wavespeed client configuration
+function getWavespeedClient(apiKey?: string, baseUrl?: string) {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('No Wavespeed API key provided. Please set your API key in the application settings.')
+  }
+  
+  return {
+    apiKey: apiKey.trim(),
+    baseUrl: baseUrl?.trim() || 'https://api.wavespeed.ai/api/v3'
+  }
+}
+
+// Function to generate images using Wavespeed API
+async function generateImage(config: WavespeedModelConfig, prompt: string, options: {
+  images?: string[]
+  size?: string
+  outputFormat?: string
+}): Promise<any> {
+  const { model, apiKey, baseUrl, size = '1024*1024', outputFormat = 'png' } = config
+  const { images } = options
+  
+  const client = getWavespeedClient(apiKey, baseUrl)
+  
+  // Use the model name directly in the URL (e.g., "bytedance/seedream-v4" or "bytedance/seedream-v4/edit")
+  const endpoint = `${client.baseUrl}/${model}`
+  
+  const requestBody: any = {
+    enable_base64_output: config.enableBase64Output || false,
+    enable_sync_mode: config.enableSyncMode || true,
+    prompt,
+    size,
+    output_format: outputFormat
+  }
+  
+  // Add images for editing models
+  if (images && images.length > 0) {
+    requestBody.images = images
+  }
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${client.apiKey}`
+    },
+    body: JSON.stringify(requestBody)
+  })
+  
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Wavespeed API error: ${response.status} ${response.statusText} - ${errorText}`)
+  }
+  
+  return await response.json()
 }
 
 // Enhanced step result interface
@@ -1267,6 +1334,53 @@ api.post('/community-agents/:id/rate', async (c) => {
       return c.json({ error: 'Validation failed', details: error.errors }, 400);
     }
     return c.json({ error: 'Failed to rate community agent' }, 500);
+  }
+})
+
+// Image generation endpoint using Wavespeed
+api.post('/generate-image', async (c) => {
+  const body = await c.req.json()
+  
+  const ImageGenerationSchema = z.object({
+    prompt: z.string().min(1, 'Prompt is required'),
+    model: z.string().min(1, 'Model is required'),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional(),
+    size: z.string().optional().default('1024*1024'),
+    outputFormat: z.string().optional().default('png'),
+    images: z.array(z.string()).optional() // for image editing
+  })
+  
+  try {
+    const { prompt, model, apiKey, baseUrl, size, outputFormat, images } = ImageGenerationSchema.parse(body)
+    
+    const config: WavespeedModelConfig = {
+      provider: 'wavespeed',
+      model,
+      apiKey: apiKey || c.req.header('X-Wavespeed-API-Key') || c.req.header('X-API-Key'),
+      baseUrl,
+      size,
+      outputFormat
+    }
+    
+    const result = await generateImage(config, prompt, { images, size, outputFormat })
+    
+    // Extract image URL from Wavespeed response structure
+    // Wavespeed returns: { code, message, data: { outputs: [...] } }
+    const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
+    
+    return c.json({
+      imageUrl,
+      result,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('Image generation error:', error)
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400)
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    return c.json({ error: 'Failed to generate image', details: errorMessage }, 500)
   }
 })
 
