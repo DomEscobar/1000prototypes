@@ -73,12 +73,15 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
   
   const requestBody: any = {
     enable_base64_output: config.enableBase64Output || false,
-    enable_sync_mode: config.enableSyncMode || true,
+    enable_sync_mode: config.enableSyncMode || false, // Use async mode for polling
     prompt,
     size,
     output_format: outputFormat
   }
-  
+
+  console.log('requestBody=========>', requestBody)
+
+  console.log('images=========>', images?.length)
   // Add images for editing models
   if (images && images.length > 0) {
     requestBody.images = images
@@ -98,7 +101,45 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
     throw new Error(`Wavespeed API error: ${response.status} ${response.statusText} - ${errorText}`)
   }
   
-  return await response.json()
+  const result = await response.json() as any
+  const requestId = result.data.id
+  console.log(`Task submitted successfully. Request ID: ${requestId}`)
+  
+  // Poll for result
+  while (true) {
+    const pollResponse = await fetch(
+      `${client.baseUrl}/predictions/${requestId}/result`,
+      {
+        headers: {
+          'Authorization': `Bearer ${client.apiKey}`
+        }
+      }
+    )
+    
+    const pollResult = await pollResponse.json() as any
+    
+    if (pollResponse.ok) {
+      const data = pollResult.data
+      const status = data.status
+      
+      if (status === 'completed') {
+        const resultUrl = data.outputs[0]
+        console.log('Task completed. URL:', resultUrl)
+        return pollResult
+      } else if (status === 'failed') {
+        console.error('Task failed:', data.error)
+        throw new Error(`Image generation failed: ${data.error}`)
+      } else {
+        console.log('Task still processing. Status:', status)
+      }
+    } else {
+      console.error('Error:', pollResponse.status, JSON.stringify(pollResult))
+      throw new Error(`Polling failed: ${pollResponse.status} ${JSON.stringify(pollResult)}`)
+    }
+    
+    // Wait 0.1 seconds before next poll
+    await new Promise(resolve => setTimeout(resolve, 0.1 * 1000))
+  }
 }
 
 // Enhanced step result interface

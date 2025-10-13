@@ -51,6 +51,27 @@ const Index = () => {
     loadAgents();
   }, []);
 
+  // Initialize hideInactiveAgents from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hide-inactive-agents');
+      if (saved !== null) {
+        setHideInactiveAgents(saved === 'true');
+      }
+    } catch (e) {
+      // noop: localStorage may be unavailable
+    }
+  }, []);
+
+  // Persist hideInactiveAgents to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('hide-inactive-agents', String(hideInactiveAgents));
+    } catch (e) {
+      // noop
+    }
+  }, [hideInactiveAgents]);
+
   // Update private history count
   useEffect(() => {
     const updateHistoryCount = () => {
@@ -554,8 +575,6 @@ const Index = () => {
           title: "Agents completed",
           description: `${successCount} out of ${activeAgents.length} agents completed successfully.`,
         });
-        // Clear images after successful submission
-        setSelectedImages([]);
       }
     } catch (error) {
       console.error('Error processing agents:', error);

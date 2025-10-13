@@ -92,15 +92,15 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
 
   const getStatusIcon = () => {
     if (agent.isBuilding) {
-      return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+      return <Loader2 className="h-3 w-3 animate-spin text-primary" />;
     }
     if (agent.output) {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
+      return <CheckCircle className="h-3 w-3 text-green-500" />;
     }
     if (agent.status === 'active') {
-      return <Sparkles className="h-4 w-4 text-primary" />;
+      return <Sparkles className="h-3 w-3 text-primary" />;
     }
-    return <XCircle className="h-4 w-4 text-muted-foreground" />;
+    return <XCircle className="h-3 w-3 text-muted-foreground" />;
   };
 
   const getStatusText = () => {
@@ -112,12 +112,12 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
 
   const getAgentIcon = () => {
     if (agent.name.toLowerCase().includes('html') || agent.name.toLowerCase().includes('website')) {
-      return <Globe className="h-5 w-5 text-primary" />;
+      return <Globe className="h-3.5 w-3.5 text-primary" />;
     }
     if (agent.name.toLowerCase().includes('code') || agent.name.toLowerCase().includes('developer')) {
-      return <Code2 className="h-5 w-5 text-primary" />;
+      return <Code2 className="h-3.5 w-3.5 text-primary" />;
     }
-    return <Bot className="h-5 w-5 text-primary" />;
+    return <Bot className="h-3.5 w-3.5 text-primary" />;
   };
 
   // Function to determine model display info
@@ -160,29 +160,18 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
 
   return (
     <Card className={`bg-gradient-card border-border shadow-card hover:shadow-elegant transition-all duration-300 overflow-hidden ${agent.status === 'inactive' ? 'opacity-60' : ''}`}>
-      {/* Simplified Header */}
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
+      {/* Compact Header Badge */}
+      <CardHeader className="pb-2 pt-3 px-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 flex items-center gap-1.5">
             {getAgentIcon()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg font-semibold text-foreground mb-1 line-clamp-1">
-              {agent.name}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {getStatusIcon()}
-              <span className="text-sm font-medium text-muted-foreground">
-                {getStatusText()}
-              </span>
-            </div>
-          </div>
+            <span className="line-clamp-1">{agent.name}</span>
+          </Badge>
+          <Badge variant={agent.status === 'active' ? 'default' : 'secondary'} className="text-xs px-2 py-0.5 flex items-center gap-1">
+            {getStatusIcon()}
+            <span>{getStatusText()}</span>
+          </Badge>
         </div>
-        {agent.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
-            {agent.description}
-          </p>
-        )}
       </CardHeader>
 
       <CardContent className="pt-0 pb-0">
