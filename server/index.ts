@@ -561,6 +561,69 @@ class CommunityAgentsDB {
 const savedOutputsDB = new SavedOutputsDB();
 const communityAgentsDB = new CommunityAgentsDB();
 
+// Request throttling and queuing system
+class RequestThrottler {
+  private requestQueue = new Map<string, Promise<any>>();
+  private activeRequests = new Map<string, number>();
+  private maxConcurrentRequests = 3; // Limit concurrent requests per model
+  private requestDelays = new Map<string, number>(); // Track last request time per model
+
+  async throttledGenerateContent(config: ModelConfig, prompt: string, options: any): Promise<any> {
+    const key = `${config.provider}-${config.model}`;
+    const now = Date.now();
+    
+    // Check if we need to add delay between requests for this model
+    const lastRequest = this.requestDelays.get(key) || 0;
+    const timeSinceLastRequest = now - lastRequest;
+    const minDelay = 1000; // 1 second minimum between requests for same model
+    
+    if (timeSinceLastRequest < minDelay) {
+      await new Promise(resolve => setTimeout(resolve, minDelay - timeSinceLastRequest));
+    }
+    
+    // Check concurrent request limit
+    const activeCount = this.activeRequests.get(key) || 0;
+    if (activeCount >= this.maxConcurrentRequests) {
+      // Wait for a slot to become available
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    // Increment active request count
+    this.activeRequests.set(key, activeCount + 1);
+    this.requestDelays.set(key, Date.now());
+    
+    try {
+      const result = await this.generateContentWithRetry(config, prompt, options);
+      return result;
+    } finally {
+      // Decrement active request count
+      const currentCount = this.activeRequests.get(key) || 0;
+      this.activeRequests.set(key, Math.max(0, currentCount - 1));
+    }
+  }
+
+  private async generateContentWithRetry(config: ModelConfig, prompt: string, options: any, maxRetries = 3): Promise<any> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await generateContent(config, prompt, options);
+      } catch (error) {
+        console.warn(`Request attempt ${i + 1} failed for ${config.provider}-${config.model}:`, error);
+        
+        if (i === maxRetries - 1) {
+          throw error; // Last attempt failed
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = 1000 * Math.pow(2, i);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+}
+
+const requestThrottler = new RequestThrottler();
+
 // HTML Parser function
 function extractHTMLFromResponse(response: string): string {
   // Try to find HTML code blocks first (```html ... ```)
@@ -737,7 +800,7 @@ api.post('/process-sequence/stream', async (c) => {
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
               const provider = "openrouter";
-              const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+              const result = await requestThrottler.throttledGenerateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
               let response = ''
               let thinking = ''
@@ -913,7 +976,7 @@ api.post('/process-sequence', async (c) => {
 
       try {
         const provider = "openrouter";
-        const result = await generateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+        const result = await requestThrottler.throttledGenerateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
         let response = ''
         let thinking = ''
@@ -1005,7 +1068,7 @@ api.post('/chat', async (c) => {
     // Generate response using default model
     const provider = 'openrouter'
     const model = 'google/gemini-2.5-pro' // Use multimodal model for image support
-    const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
+    const result = await requestThrottler.throttledGenerateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
 
     let response = ''
 
@@ -1077,7 +1140,7 @@ api.post('/chat/stream', async (c) => {
         try {
           const provider = 'openrouter'
           const model = 'google/gemini-2.5-pro' // Use multimodal model for image support
-          const result = await generateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
+          const result = await requestThrottler.throttledGenerateContent({ provider, model, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, fullPrompt, { stream: true, thinking: true, images })
 
           // Stream the response
           if (provider === 'openrouter') {

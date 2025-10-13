@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -268,6 +268,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest, onAgentUpdat
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl h-[99vh] bg-gradient-card border-border p-2">
         <DialogHeader>
+          <DialogTitle className="sr-only">Output Viewer - {agent?.name}</DialogTitle>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Primary actions - always visible */}

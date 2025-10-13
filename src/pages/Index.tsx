@@ -508,9 +508,17 @@ const Index = () => {
         : agent
     ));
 
-    // Process each agent's request with progress tracking
-    const buildPromises = activeAgents.map(async (agent) => {
+    // Process each agent's request with progress tracking and staggered delays
+    const buildPromises = activeAgents.map(async (agent, index) => {
       const startTime = Date.now();
+
+      // Add staggered delay between agent starts to prevent API flooding
+      // This helps distribute the load and reduces the chance of rate limiting
+      if (index > 0) {
+        const delay = index * 2000; // 2 second delay between each agent
+        console.log(`Delaying agent ${agent.name} by ${delay}ms to prevent API flooding`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
 
       try {
         // Create progress updater function
