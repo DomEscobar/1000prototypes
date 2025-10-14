@@ -40,6 +40,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
 
   useEffect(() => {
     if (agent) {
+      console.log('Loading agent in modal:', { provider: agent.provider, wavespeedConfig: agent.wavespeedConfig });
       setName(agent.name);
       setDescription(agent.description || "");
       setStatus(agent.status || "active");
@@ -63,7 +64,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setOutputFormat('png');
       setPrompts([{ content: "" }]);
     }
-  }, [agent, isOpen]);
+  }, [agent]);
 
   const handleAddPrompt = () => {
     setPrompts([...prompts, { content: "" }]);

@@ -300,6 +300,8 @@ const Index = () => {
       const transformedAgents: Agent[] = response.agents.map(agent => ({
         ...agent,
         model: agent.model || "qwen/qwen3-coder",
+        provider: agent.provider || "openrouter",
+        wavespeedConfig: agent.wavespeedConfig,
         prompts: agent.prompts || [],
         isBuilding: false,
         output: null,
@@ -335,11 +337,14 @@ const Index = () => {
     try {
       if (editingAgent) {
         // Update existing agent
+        console.log('Saving agent with provider:', agent.provider, 'wavespeedConfig:', agent.wavespeedConfig);
         await apiService.updateAgent(agent.id, {
           name: agent.name,
           description: agent.description,
           prompts: agent.prompts,
-          model: agent.model
+          model: agent.model,
+          provider: agent.provider,
+          wavespeedConfig: agent.wavespeedConfig
         });
 
         setAgents(agents.map(a => a.id === agent.id ? { ...agent, isBuilding: false, output: null, results: undefined, detailedSteps: undefined } : a));
@@ -349,7 +354,9 @@ const Index = () => {
           name: agent.name,
           description: agent.description || "",
           prompts: agent.prompts || [],
-          model: agent.model
+          model: agent.model,
+          provider: agent.provider,
+          wavespeedConfig: agent.wavespeedConfig
         });
 
         const newAgent: Agent = {
