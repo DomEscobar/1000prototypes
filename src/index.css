@@ -8,59 +8,52 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 222 8% 4%;
-    --foreground: 210 20% 96%;
+    --background: 206 64% 8%;
+    --foreground: 0 0% 98%;
 
-    --card: 225 7% 6%;
-    --card-foreground: 210 20% 96%;
+    --card: 206 64% 10%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 225 7% 6%;
-    --popover-foreground: 210 20% 96%;
+    --popover: 206 64% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 212 95% 60%;
+    --primary: 183 100% 40%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 217 10% 12%;
-    --secondary-foreground: 210 20% 96%;
+    --secondary: 206 64% 12%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 10% 12%;
-    --muted-foreground: 215 16% 55%;
+    --muted: 206 64% 12%;
+    --muted-foreground: 183 30% 70%;
 
-    --accent: 212 95% 60%;
+    --accent: 183 100% 40%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 217 10% 14%;
-    --input: 217 10% 14%;
-    --ring: 212 95% 60%;
+    --border: 206 64% 14%;
+    --input: 206 64% 14%;
+    --ring: 183 100% 40%;
 
     /* Custom design tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(212 95% 60%), hsl(200 95% 65%));
-    --gradient-card: linear-gradient(145deg, hsl(225 7% 6%), hsl(217 10% 9%));
+    --gradient-primary: linear-gradient(135deg, hsl(183 100% 40%), hsl(183 100% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(206 64% 10%), hsl(206 64% 12%));
     --gradient-building: linear-gradient(45deg, hsl(45 95% 58%), hsl(38 95% 62%));
-    --shadow-elegant: 0 12px 40px -8px hsl(212 95% 60% / 0.25);
+    --shadow-elegant: 0 12px 40px -8px hsl(183 100% 40% / 0.25);
     --shadow-card: 0 6px 25px -6px hsl(0 0% 0% / 0.4);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 206 64% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 183 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 206 64% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 206 64% 14%;
+    --sidebar-ring: 183 100% 40%;
   }
 
   .dark {
@@ -99,6 +92,51 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .theme-cyber {
+    --background: 206 64% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 206 64% 10%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 206 64% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 183 100% 40%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 206 64% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 206 64% 12%;
+    --muted-foreground: 183 30% 70%;
+
+    --accent: 183 100% 40%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 206 64% 14%;
+    --input: 206 64% 14%;
+    --ring: 183 100% 40%;
+
+    /* Custom design tokens for cyber theme */
+    --gradient-primary: linear-gradient(135deg, hsl(183 100% 40%), hsl(183 100% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(206 64% 10%), hsl(206 64% 12%));
+    --shadow-elegant: 0 12px 40px -8px hsl(183 100% 40% / 0.25);
+    --shadow-card: 0 6px 25px -6px hsl(0 0% 0% / 0.4);
+
+    --sidebar-background: 206 64% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 183 100% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 206 64% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 206 64% 14%;
+    --sidebar-ring: 183 100% 40%;
   }
 }
 
