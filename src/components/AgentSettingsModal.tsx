@@ -33,7 +33,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
   // New state for expanded textarea modal
   const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null);
   const [expandedPromptValue, setExpandedPromptValue] = useState("");
-  const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");   
+  const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");
+  const [expandedPromptProvider, setExpandedPromptProvider] = useState<'openrouter' | 'wavespeed' | ''>('');   
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -91,11 +92,21 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
     setPrompts(updated);
   };
 
+  const handlePromptProviderChange = (index: number, promptProvider: 'openrouter' | 'wavespeed' | '') => {
+    const updated = [...prompts];
+    updated[index] = { 
+      ...updated[index], 
+      provider: promptProvider === provider || promptProvider === '' ? undefined : promptProvider as 'openrouter' | 'wavespeed' // Don't store if same as default or empty
+    };
+    setPrompts(updated);
+  };
+
   // New functions for expanded modal
   const handleExpandPrompt = (index: number) => {
     setExpandedPromptIndex(index);
     setExpandedPromptValue(prompts[index].content);
     setExpandedPromptModel(prompts[index].model || "");
+    setExpandedPromptProvider(prompts[index].provider || 'default');
   };
 
   const handleCloseExpandedPrompt = () => {
@@ -104,19 +115,22 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       updated[expandedPromptIndex] = {
         ...updated[expandedPromptIndex],
         content: expandedPromptValue,
-        model: expandedPromptModel === model ? undefined : expandedPromptModel.trim() || undefined
+        model: expandedPromptModel === model ? undefined : expandedPromptModel.trim() || undefined,
+        provider: (expandedPromptProvider === '' || expandedPromptProvider === 'default' || expandedPromptProvider === provider) ? undefined : expandedPromptProvider as 'openrouter' | 'wavespeed'
       };
       setPrompts(updated);
     }
     setExpandedPromptIndex(null);
     setExpandedPromptValue("");
     setExpandedPromptModel("");
+    setExpandedPromptProvider("");
   };
 
   const handleCancelExpandedPrompt = () => {
     setExpandedPromptIndex(null);
     setExpandedPromptValue("");
     setExpandedPromptModel("");
+    setExpandedPromptProvider("");
   };
 
   const handleSave = () => {
@@ -257,8 +271,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
 
             {/* Wavespeed Configuration - Only show if provider is wavespeed */}
             {provider === 'wavespeed' && (
-              <div className="space-y-4 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                <h4 className="font-medium text-purple-900 dark:text-purple-100 text-sm flex items-center gap-2">
+              <div className="space-y-4 p-4 border dark:border-purple-800 rounded-lg">
+                <h4 className="font-medium  text-sm flex items-center gap-2">
                   🎨 Image Generation Settings
                 </h4>
                 
@@ -333,9 +347,8 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                 {prompts.map((prompt, index) => (
                   <Card key={index} className={`bg-secondary/30 border-border/50 ${isMobile ? 'p-1' : 'p-4'}`}>
                     <div className={`flex gap-3 ${isMobile ? 'flex-col' : 'items-start'}`}>
-                      <div className={`flex items-center gap-2 ${isMobile ? 'justify-between' : 'pt-2'}`}>
-                        <div className="flex items-center gap-2">
-                          {!isMobile && <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />}
+                      <div className={`flex flex-col items-center gap-2 ${isMobile ? 'justify-between' : 'pt-2'}`}>
+                        <div className="flex items-center gap-1">
                           <span className="text-sm font-medium text-muted-foreground min-w-0">
                             Step {index + 1}
                           </span>
@@ -365,18 +378,50 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                         </div>
                       </div>
                       <div className="flex-1 space-y-3">
-                        {/* Per-prompt model selection */}
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Bot className="h-3 w-3" />
-                            Model for Step {index + 1}
-                          </Label>
-                          <Input
-                            value={prompt.model || ""}
-                            onChange={(e) => handlePromptModelChange(index, e.target.value)}
-                            placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
-                            className="bg-background border-border h-8 text-xs"
-                          />
+                        {/* Per-prompt provider and model selection */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                              Provider for Step {index + 1}
+                            </Label>
+                            <Select
+                              value={prompt.provider || 'default'}
+                              onValueChange={(value) => {
+                                if (value === 'default') {
+                                  handlePromptProviderChange(index, '');
+                                } else {
+                                  handlePromptProviderChange(index, value as 'openrouter' | 'wavespeed');
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="bg-background border-border h-8 text-xs">
+                                <SelectValue placeholder={`Use default (${provider})`} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-popover border-border">
+                                <SelectItem value="default" className="focus:bg-accent focus:text-accent-foreground">
+                                  Use Default ({provider})
+                                </SelectItem>
+                                <SelectItem value="openrouter" className="focus:bg-accent focus:text-accent-foreground">
+                                  OpenRouter
+                                </SelectItem>
+                                <SelectItem value="wavespeed" className="focus:bg-accent focus:text-accent-foreground">
+                                  Wavespeed
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Bot className="h-3 w-3" />
+                              Model for Step {index + 1}
+                            </Label>
+                            <Input
+                              value={prompt.model || ""}
+                              onChange={(e) => handlePromptModelChange(index, e.target.value)}
+                              placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                              className="bg-background border-border h-8 text-xs"
+                            />
+                          </div>
                         </div>
                         
                         <Textarea
@@ -469,18 +514,48 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
           </DialogHeader>
           
           <div className="flex-1 flex flex-col gap-4 min-h-0">
-            {/* Model selection for expanded prompt */}
-            <div className="space-y-2">
-              <Label className="text-foreground flex items-center gap-2">
-                <Bot className="h-4 w-4" />
-                Model for this step
-              </Label>
-              <Input
-                value={expandedPromptModel}
-                onChange={(e) => setExpandedPromptModel(e.target.value)}
-                placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
-                className="bg-background border-border"
-              />
+            {/* Provider and Model selection for expanded prompt */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-foreground">Provider for this step</Label>
+                <Select
+                  value={expandedPromptProvider || 'default'}
+                  onValueChange={(value) => {
+                    if (value === 'default') {
+                      setExpandedPromptProvider('');
+                    } else {
+                      setExpandedPromptProvider(value as 'openrouter' | 'wavespeed');
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder={`Use default (${provider})`} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border">
+                    <SelectItem value="default" className="focus:bg-accent focus:text-accent-foreground">
+                      Use Default ({provider})
+                    </SelectItem>
+                    <SelectItem value="openrouter" className="focus:bg-accent focus:text-accent-foreground">
+                      OpenRouter
+                    </SelectItem>
+                    <SelectItem value="wavespeed" className="focus:bg-accent focus:text-accent-foreground">
+                      Wavespeed
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground flex items-center gap-2">
+                  <Bot className="h-4 w-4" />
+                  Model for this step
+                </Label>
+                <Input
+                  value={expandedPromptModel}
+                  onChange={(e) => setExpandedPromptModel(e.target.value)}
+                  placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                  className="bg-background border-border"
+                />
+              </div>
             </div>
 
             <div className="flex-1">

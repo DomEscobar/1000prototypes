@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Settings, Key, Eye, EyeOff, ExternalLink, AlertTriangle, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
@@ -226,205 +226,209 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
             </AlertDescription>
           </Alert>
 
-          {/* OpenRouter API Key Section */}
-          <Card className="p-6 bg-secondary/30 border-border/50">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground">API Configuration</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configure the API endpoint and key for AI model access
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {hasOpenRouterKey && (
-                    <div className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 px-2 py-1 rounded">
-                      ✓ Configured
+          {/* Tabs for API Configuration */}
+          <Tabs defaultValue="openrouter" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="openrouter" className="flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                API Configuration
+              </TabsTrigger>
+              <TabsTrigger value="wavespeed" className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                Wavespeed AI
+              </TabsTrigger>
+            </TabsList>
+
+            {/* OpenRouter API Key Tab */}
+            <TabsContent value="openrouter" className="mt-4">
+              <Card className="p-6 bg-secondary/30 border-border/50">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {hasOpenRouterKey && (
+                        <div className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 px-2 py-1 rounded">
+                          ✓ Configured
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="base-url" className="text-foreground">Base URL</Label>
-                  <Input
-                    id="base-url"
-                    type="text"
-                    value={baseUrl}
-                    onChange={(e) => setBaseUrl(e.target.value)}
-                    placeholder="https://openrouter.ai/api/v1"
-                    className="bg-background border-border"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    The API endpoint URL. Default is OpenRouter's URL.
-                  </p>
-                </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="base-url" className="text-foreground">Base URL</Label>
+                      <Input
+                        id="base-url"
+                        type="text"
+                        value={baseUrl}
+                        onChange={(e) => setBaseUrl(e.target.value)}
+                        placeholder="https://openrouter.ai/api/v1"
+                        className="bg-background border-border"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The API endpoint URL. Default is OpenRouter's URL.
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="openrouter-key" className="text-foreground">API Key</Label>
-                  <div className="relative">
-                    <Input
-                      id="openrouter-key"
-                      type={showOpenRouterKey ? "text" : "password"}
-                      value={openRouterApiKey}
-                      onChange={(e) => setOpenRouterApiKey(e.target.value)}
-                      placeholder="Enter your API key"
-                      className="bg-background border-border pr-20"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="openrouter-key" className="text-foreground">API Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="openrouter-key"
+                          type={showOpenRouterKey ? "text" : "password"}
+                          value={openRouterApiKey}
+                          onChange={(e) => setOpenRouterApiKey(e.target.value)}
+                          placeholder="Enter your API key"
+                          className="bg-background border-border pr-20"
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
+                            className="h-8 w-8 p-0 hover:bg-accent"
+                          >
+                            {showOpenRouterKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Button
-                        type="button"
+                        onClick={handleSaveOpenRouterKey}
+                        disabled={isLoading || !openRouterApiKey.trim() || !baseUrl.trim()}
+                        className="bg-gradient-primary hover:opacity-90"
+                      >
+                        {isLoading ? "Saving..." : "Save Settings"}
+                      </Button>
+
+                      {hasOpenRouterKey && (
+                        <Button
+                          variant="outline"
+                          onClick={handleClearOpenRouterKey}
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          Clear Settings
+                        </Button>
+                      )}
+
+                      <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowOpenRouterKey(!showOpenRouterKey)}
-                        className="h-8 w-8 p-0 hover:bg-accent"
+                        asChild
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        {showOpenRouterKey ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        <a
+                          href="https://openrouter.ai/keys"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1"
+                        >
+                          Get API Key
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </Button>
                     </div>
                   </div>
                 </div>
+              </Card>
+            </TabsContent>
 
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Button
-                    onClick={handleSaveOpenRouterKey}
-                    disabled={isLoading || !openRouterApiKey.trim() || !baseUrl.trim()}
-                    className="bg-gradient-primary hover:opacity-90"
-                  >
-                    {isLoading ? "Saving..." : "Save Settings"}
-                  </Button>
-
-                  {hasOpenRouterKey && (
-                    <Button
-                      variant="outline"
-                      onClick={handleClearOpenRouterKey}
-                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      Clear Settings
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <a
-                      href="https://openrouter.ai/keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1"
-                    >
-                      Get API Key
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                </div>
-
-              </div>
-            </div>
-          </Card>
-
-          <Separator className="my-6" />
-
-          {/* Wavespeed API Key Section */}
-          <Card className="p-6 bg-secondary/30 border-border/50">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <Image className="h-5 w-5" />
-                    Wavespeed AI (Image Generation)
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configure Wavespeed API for AI image generation capabilities
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {hasWavespeedKey && (
-                    <div className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 px-2 py-1 rounded">
-                      ✓ Configured
+            {/* Wavespeed API Key Tab */}
+            <TabsContent value="wavespeed" className="mt-4">
+              <Card className="p-6 bg-secondary/30 border-border/50">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Configure Wavespeed API for AI image generation capabilities
+                      </p>
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="flex items-center gap-2">
+                      {hasWavespeedKey && (
+                        <div className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 px-2 py-1 rounded">
+                          ✓ Configured
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="wavespeed-key" className="text-foreground">Wavespeed API Key</Label>
-                  <div className="relative">
-                    <Input
-                      id="wavespeed-key"
-                      type={showWavespeedKey ? "text" : "password"}
-                      value={wavespeedApiKey}
-                      onChange={(e) => setWavespeedApiKey(e.target.value)}
-                      placeholder="Enter your Wavespeed API key"
-                      className="bg-background border-border pr-20"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="wavespeed-key" className="text-foreground">Wavespeed API Key</Label>
+                      <div className="relative">
+                        <Input
+                          id="wavespeed-key"
+                          type={showWavespeedKey ? "text" : "password"}
+                          value={wavespeedApiKey}
+                          onChange={(e) => setWavespeedApiKey(e.target.value)}
+                          placeholder="Enter your Wavespeed API key"
+                          className="bg-background border-border pr-20"
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowWavespeedKey(!showWavespeedKey)}
+                            className="h-8 w-8 p-0 hover:bg-accent"
+                          >
+                            {showWavespeedKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Button
-                        type="button"
+                        onClick={handleSaveWavespeedKey}
+                        disabled={isLoading || !wavespeedApiKey.trim()}
+                        className="bg-gradient-primary hover:opacity-90"
+                      >
+                        {isLoading ? "Saving..." : "Save Wavespeed Key"}
+                      </Button>
+
+                      {hasWavespeedKey && (
+                        <Button
+                          variant="outline"
+                          onClick={handleClearWavespeedKey}
+                          className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          Clear Key
+                        </Button>
+                      )}
+
+                      <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowWavespeedKey(!showWavespeedKey)}
-                        className="h-8 w-8 p-0 hover:bg-accent"
+                        asChild
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        {showWavespeedKey ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        <a
+                          href="https://wavespeed.ai"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1"
+                        >
+                          Get API Key
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       </Button>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Button
-                    onClick={handleSaveWavespeedKey}
-                    disabled={isLoading || !wavespeedApiKey.trim()}
-                    className="bg-gradient-primary hover:opacity-90"
-                  >
-                    {isLoading ? "Saving..." : "Save Wavespeed Key"}
-                  </Button>
-
-                  {hasWavespeedKey && (
-                    <Button
-                      variant="outline"
-                      onClick={handleClearWavespeedKey}
-                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      Clear Key
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <a
-                      href="https://wavespeed.ai"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1"
-                    >
-                      Get API Key
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </Button>
-                </div>
-
-              </div>
-            </div>
-          </Card>
+              </Card>
+            </TabsContent>
+          </Tabs>
 
         </div>
       </DialogContent>

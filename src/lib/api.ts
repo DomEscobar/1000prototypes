@@ -4,10 +4,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const API_KEY_STORAGE_KEY = 'openrouter-api-key';
 const BASE_URL_STORAGE_KEY = 'openrouter-base-url';
 
-// Enhanced prompt interface to support per-prompt models
+// Enhanced prompt interface to support per-prompt models and providers
 export interface PromptStep {
   content: string;
   model?: string; // Optional model override for this specific prompt
+  provider?: 'openrouter' | 'wavespeed'; // Optional provider override for this specific prompt
 }
 
 export interface Agent {
@@ -96,6 +97,7 @@ export interface ProcessSequenceRequest {
   prompts: string[] | PromptStep[]; // Support both legacy and new formats
   userRequest: string;
   model?: string; // Default model if not specified per prompt
+  provider?: 'openrouter' | 'wavespeed'; // Default provider if not specified per prompt
   apiKey?: string;
   baseUrl?: string; // Support for configurable base URL
   images?: string[]; // Support for image URLs or base64 data
@@ -1060,7 +1062,8 @@ class ApiService {
       const requestData: ProcessSequenceRequest = {
         prompts: agent.prompts,
         userRequest,
-        model: agent.model || 'qwen/qwen3-coder'
+        model: agent.model || 'qwen/qwen3-coder',
+        provider: agent.provider || 'openrouter'
       };
 
       // Only add apiKey if it exists
@@ -1219,6 +1222,7 @@ class ApiService {
             prompts: agent.prompts,
             userRequest,
             model: agent.model || 'qwen/qwen3-coder',
+            provider: agent.provider || 'openrouter',
             images
           };
 
@@ -1355,6 +1359,13 @@ export function getPromptModel(prompts: string[] | PromptStep[], index: number):
     return undefined; // Legacy format doesn't have per-prompt models
   }
   return (prompts as PromptStep[])[index].model;
+}
+
+export function getPromptProvider(prompts: string[] | PromptStep[], index: number, defaultProvider: 'openrouter' | 'wavespeed' = 'openrouter'): 'openrouter' | 'wavespeed' {
+  if (typeof prompts[0] === 'string') {
+    return defaultProvider; // Legacy format uses default provider
+  }
+  return (prompts as PromptStep[])[index].provider || defaultProvider;
 }
 
 export const apiService = new ApiService(); 

@@ -153,10 +153,11 @@ interface ProcessStep {
   model?: string; // Track which model was used for this step
 }
 
-// Enhanced prompt interface to support per-prompt models
+// Enhanced prompt interface to support per-prompt models and providers
 interface PromptStep {
   content: string;
   model?: string; // Optional model override for this specific prompt
+  provider?: 'openrouter' | 'wavespeed'; // Optional provider override for this specific prompt
 }
 
 // Helper functions to work with both prompt formats
@@ -177,6 +178,14 @@ function getPromptModel(prompts: (string | PromptStep)[], index: number, default
     return defaultModel;
   }
   return prompt.model || defaultModel;
+}
+
+function getPromptProvider(prompts: (string | PromptStep)[], index: number, defaultProvider: 'openrouter' | 'wavespeed'): 'openrouter' | 'wavespeed' {
+  const prompt = prompts[index];
+  if (typeof prompt === 'string') {
+    return defaultProvider;
+  }
+  return prompt.provider || defaultProvider;
 }
 
 // Universal content generation function
@@ -767,6 +776,7 @@ api.post('/process-sequence/stream', async (c) => {
           for (let i = 0; i < prompts.length; i++) {
             const originalPromptText = getPromptContent(prompts, i)
             const stepModel = getPromptModel(prompts, i, modelName)
+            const stepProvider = getPromptProvider(prompts, i, defaultProvider)
 
             // Replace {USER_REQUEST} placeholder with actual user request
             let processedPrompt = originalPromptText.replace(/{USER_REQUEST}/g, userRequest)
@@ -799,14 +809,13 @@ api.post('/process-sequence/stream', async (c) => {
 
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
-              const provider = "openrouter";
-              const result = await requestThrottler.throttledGenerateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+              const result = await requestThrottler.throttledGenerateContent({ provider: stepProvider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
               let response = ''
               let thinking = ''
 
               // Process streaming response and send chunks
-              if (provider === 'openrouter') {
+              if (stepProvider === 'openrouter') {
                 for await (const chunk of result) {
                   if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) {
                     const content = chunk.choices[0].delta.content;
@@ -929,11 +938,13 @@ api.post('/process-sequence', async (c) => {
       z.string(),
       z.object({
         content: z.string(),
-        model: z.string().optional()
+        model: z.string().optional(),
+        provider: z.enum(['openrouter', 'wavespeed']).optional()
       })
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
+    provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
     images: z.array(z.string()).optional()
@@ -942,7 +953,7 @@ api.post('/process-sequence', async (c) => {
 
 
   try {
-    const { prompts, userRequest, model: modelName, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
 
     const results: string[] = []
     const detailedSteps: ProcessStep[] = []
@@ -952,6 +963,7 @@ api.post('/process-sequence', async (c) => {
     for (let i = 0; i < prompts.length; i++) {
       const originalPromptText = getPromptContent(prompts, i)
       const stepModel = getPromptModel(prompts, i, modelName)
+      const stepProvider = getPromptProvider(prompts, i, defaultProvider)
 
       // Replace {USER_REQUEST} placeholder with actual user request
       let processedPrompt = originalPromptText.replace(/{USER_REQUEST}/g, userRequest)
@@ -972,17 +984,16 @@ api.post('/process-sequence', async (c) => {
         }
       } : undefined
 
-      console.log(`Making request with model: ${stepModel} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
+      console.log(`Making request with model: ${stepModel}, provider: ${stepProvider} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
 
       try {
-        const provider = "openrouter";
-        const result = await requestThrottler.throttledGenerateContent({ provider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+        const result = await requestThrottler.throttledGenerateContent({ provider: stepProvider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
         let response = ''
         let thinking = ''
 
         // Process streaming response
-        if (provider === 'openrouter') {
+        if (stepProvider === 'openrouter') {
           for await (const chunk of result) {
             if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) {
               response += chunk.choices[0].delta.content;
