@@ -7,6 +7,7 @@ import OpenAI from 'openai'
 import { promises as fs, promises } from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
+import imageSize from 'image-size'
 
 // Provider types
 type ModelProvider = 'openrouter' | 'wavespeed'
@@ -57,24 +58,89 @@ function getWavespeedClient(apiKey?: string) {
   }
 }
 
+// Helper function to get image dimensions from base64 or URL
+async function getImageDimensions(imageDataOrUrl: string): Promise<{ width: number; height: number } | null> {
+  try {
+    let imageBuffer: Buffer;
+    
+    // Check if it's a base64 data URL
+    if (imageDataOrUrl.startsWith('data:image/')) {
+      const base64Data = imageDataOrUrl.split(',')[1];
+      imageBuffer = Buffer.from(base64Data, 'base64');
+    } 
+    // Check if it's a URL
+    else if (imageDataOrUrl.startsWith('http://') || imageDataOrUrl.startsWith('https://')) {
+      const response = await fetch(imageDataOrUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      imageBuffer = Buffer.from(arrayBuffer);
+    } else {
+      return null;
+    }
+    
+    // Use image-size library to get dimensions
+    const dimensions = imageSize(imageBuffer);
+    
+    if (dimensions.width && dimensions.height) {
+      return { width: dimensions.width, height: dimensions.height };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting image dimensions:', error);
+    return null;
+  }
+}
+
 // Function to generate images using Wavespeed API
 async function generateImage(config: WavespeedModelConfig, prompt: string, options: {
   images?: string[]
   size?: string
   outputFormat?: string
 }): Promise<any> {
-  const { model, apiKey, baseUrl, size = '1024*1024', outputFormat = 'png' } = config
+  const { model, apiKey, baseUrl, size = 'original', outputFormat = 'png' } = config
   const { images } = options
   const client = getWavespeedClient(apiKey)
   
   // Use the model name directly in the URL (e.g., "bytedance/seedream-v4" or "bytedance/seedream-v4/edit")
   const endpoint = `${client.baseUrl}/${model}`
   
+  // Determine the actual size to use
+  let actualSize = size;
+  if (size === 'original' && images && images.length > 0) {
+    // Get dimensions from the first image
+    const dimensions = await getImageDimensions(images[0]);
+    if (dimensions) {
+      let { width, height } = dimensions;
+      const totalPixels = width * height;
+      const minPixels = 921600; // Wavespeed minimum requirement
+      
+      // Auto-upscale if image is too small
+      if (totalPixels < minPixels) {
+        const scaleFactor = Math.sqrt(minPixels / totalPixels);
+        width = Math.ceil(width * scaleFactor);
+        height = Math.ceil(height * scaleFactor);
+        console.log(`Original size ${dimensions.width}*${dimensions.height} (${totalPixels} pixels) is below minimum ${minPixels}`);
+        console.log(`Auto-upscaling to ${width}*${height} (${width * height} pixels) to meet requirement`);
+      } else {
+        console.log(`Detected original image size: ${width}*${height} (${totalPixels} pixels)`);
+      }
+      
+      actualSize = `${width}*${height}`;
+    } else {
+      console.warn('Could not detect image dimensions, using default 1024*1024');
+      actualSize = '1024*1024';
+    }
+  } else if (size === 'original') {
+    // No images provided, use default
+    console.log('No images provided for "original" size, using default 1024*1024');
+    actualSize = '1024*1024';
+  }
+  
   const requestBody: any = {
     enable_base64_output: config.enableBase64Output || false,
-    enable_sync_mode: config.enableSyncMode || false, // Use async mode for polling
+    enable_sync_mode: config.enableSyncMode || false,
     prompt,
-    size,
+    size: actualSize,
     output_format: outputFormat
   }
 
@@ -832,7 +898,7 @@ api.post('/process-sequence/stream', async (c) => {
               }
               
               if (stepProvider === 'wavespeed' && wavespeedConfig) {
-                config.size = wavespeedConfig.size || '1024*1024'
+                config.size = wavespeedConfig.size || 'original'
                 config.outputFormat = wavespeedConfig.outputFormat || 'png'
               }
               
@@ -1768,7 +1834,7 @@ api.post('/generate-image', async (c) => {
     model: z.string().min(1, 'Model is required'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
-    size: z.string().optional().default('1024*1024'),
+    size: z.string().optional().default('original'),
     outputFormat: z.string().optional().default('png'),
     images: z.array(z.string()).optional() // for image editing
   })

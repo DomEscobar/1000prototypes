@@ -34,7 +34,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
   const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null);
   const [expandedPromptValue, setExpandedPromptValue] = useState("");
   const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");
-  const [expandedPromptProvider, setExpandedPromptProvider] = useState<'openrouter' | 'wavespeed' | ''>('');   
+  const [expandedPromptProvider, setExpandedPromptProvider] = useState<'openrouter' | 'wavespeed' | '' | 'default'>('');   
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -284,8 +284,9 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                       <SelectValue placeholder="Select image size" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
+                      <SelectItem value="original">📐 Original Size (from uploaded image) ⭐</SelectItem>
                       <SelectItem value="512*512">512×512 (Square - Fast)</SelectItem>
-                      <SelectItem value="1024*1024">1024×1024 (Square - Standard) ⭐</SelectItem>
+                      <SelectItem value="1024*1024">1024×1024 (Square - Standard)</SelectItem>
                       <SelectItem value="2048*2048">2048×2048 (Square - High Quality)</SelectItem>
                       <SelectItem value="768*1024">768×1024 (Portrait)</SelectItem>
                       <SelectItem value="1024*768">1024×768 (Landscape)</SelectItem>
@@ -296,7 +297,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Larger sizes take longer but produce higher quality images. Standard (1024×1024) recommended.
+                    Use "Original Size" to match uploaded image dimensions. For new images, larger sizes take longer but produce higher quality.
                   </p>
                 </div>
                 
