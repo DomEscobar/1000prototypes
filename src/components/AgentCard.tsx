@@ -224,11 +224,11 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             <div className="text-center space-y-4 w-full max-w-xs px-4">
               {/* Custom loading animation matching the design system */}
-              <div className="relative">
-                <div className="w-16 h-16 rounded-full border-4 border-border"></div>
+              <div className="relative my-8">
                 <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-t-primary border-r-primary animate-spin m-auto"></div>
               </div>
-
+              <br />
+              <br />
               {/* Progress Information */}
               {agent.buildProgress ? (
                 <div className="space-y-3">
@@ -352,8 +352,8 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                 variant={agent.status === 'active' ? 'default' : 'outline'}
                 onClick={() => onToggleStatus(agent.id)}
                 className={`h-9 px-3 ${agent.status === 'active'
-                    ? 'bg-green-600 hover:bg-green-700 text-white'
-                    : 'hover:bg-primary hover:text-primary-foreground'
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'hover:bg-primary hover:text-primary-foreground'
                   }`}
                 disabled={agent.isBuilding}
                 title={agent.status === 'active' ? 'Deactivate agent' : 'Activate agent'}

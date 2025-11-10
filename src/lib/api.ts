@@ -101,6 +101,10 @@ export interface ProcessSequenceRequest {
   apiKey?: string;
   baseUrl?: string; // Support for configurable base URL
   images?: string[]; // Support for image URLs or base64 data
+  wavespeedConfig?: {
+    size?: string;
+    outputFormat?: string;
+  };
 }
 
 export interface ProcessStep {
@@ -132,7 +136,7 @@ const DEFAULT_AGENTS_VERSION = 13;
 
 // Default agents that will be loaded initially
 const DEFAULT_AGENTS: Agent[] = [
- {
+  {
     id: "1",
     name: "General Website Builder",
     description: "AI agent that creates complete HTML websites through UI/UX design followed by development implementation",
@@ -144,7 +148,7 @@ const DEFAULT_AGENTS: Agent[] = [
       },
       "Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.\n\n**IMPORTANT: Your HTML will be rendered inside an iframe for security and isolation. Design and code with iframe context in mind.**\n\nYou stick to your principles:\n- clean code\n- Any coding principle.\n\nYou plan every step in a short roadmap before you start.\n\nGiven task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.\n\nFocus on mobile first experience - design and develop for mobile devices first, then scale up to larger screens.\nFocus on feature completion this a production based app.\nYour perfectionist in sizes, positions and animations.\nEnsure the design is fully responsive across all device sizes (mobile, tablet, desktop).\n\n**Iframe-specific considerations:**\n- When using GSAP ScrollTrigger, ensure it works within iframe context\n- For scroll-based animations, use the iframe's window and document\n- Implement smooth scrolling for anchor links within the iframe\n- Consider iframe viewport constraints in responsive design\n- Avoid code that attempts to break out of iframe security context\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Choose and include a matching Google Font: <link href=\"https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap\" rel=\"stylesheet\"> and set it as the default font family.\n- **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization\n- You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:\n  * Three.js: <script src=\"https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js\"></script>\n  * GSAP: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js\"></script>\n  * GSAP ScrollTrigger: <script src=\"https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js\"></script>\n  * Vivus.js: <script src=\"https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js\"></script>\n  * Chart.js: <script src=\"https://cdn.jsdelivr.net/npm/chart.js\"></script>\n  * Particles.js: <script src=\"https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js\"></script>\n  * Or any other libraries that enhance the functionality and user experience\n\nFor images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:\n\nFormat: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]\n\nOptional Parameters:\n• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)\n\nIMPORTANT: Use FIXED IDs in your code, not random generators!\n\nResponse me the single HTML file now, optimized for iframe rendering:"
     ],
-    model: "moonshotai/kimi-k2",
+    model: "google/gemini-2.5-flash-lite",
     provider: "openrouter",
     createdAt: new Date().toISOString()
   },
@@ -591,7 +595,7 @@ class ApiService {
   async generateAgentPrompts(name: string, description: string): Promise<{ prompts: string[] }> {
     const apiKey = this.getApiKey();
     const baseUrl = this.getBaseUrl();
-    
+
     return this.request('/api/generate-agent-prompts', {
       method: 'POST',
       body: JSON.stringify({
@@ -1030,185 +1034,58 @@ class ApiService {
           return;
         }
 
-        // Check if this is a Wavespeed image generation agent
-        if (agent.provider === 'wavespeed') {
-          // Handle Wavespeed image generation
-          if (onProgress) {
-            onProgress(0, 'Generating image...', 0);
-          }
+        // Use unified prompt sequence flow for both OpenRouter and Wavespeed
+        const apiKey = agent.provider === 'wavespeed' ? (this.getWavespeedApiKey() || this.getApiKey()) : this.getApiKey();
 
-          // Process prompt - just use the user request directly as the image prompt
-          let finalPrompt = userRequest;
+        // Prepare request data
+        const requestData: ProcessSequenceRequest = {
+          prompts: agent.prompts,
+          userRequest,
+          model: agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'),
+          provider: agent.provider || 'openrouter',
+          images
+        };
 
-          // Now generate the image using Wavespeed
-          try {
-            const imageResult = await this.generateImage({
-              prompt: finalPrompt,
-              model: agent.model || 'bytedance/seedream-v4',
-              size: agent.wavespeedConfig?.size || '1024*1024',
-              outputFormat: agent.wavespeedConfig?.outputFormat || 'png',
-              images: images // Pass uploaded images for editing
-            });
-
-            if (onProgress) {
-              onProgress(1, 'Image generated successfully!', finalPrompt.length, imageResult.imageUrl);
-            }
-
-            // Return the image URL as HTML for full-screen display
-            const imageHTML = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generated Image</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      display: block;
-    }
-    .download-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 12px 24px;
-      background: rgba(255, 255, 255, 0.95);
-      color: #1f2937;
-      border: none;
-      border-radius: 8px;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      z-index: 10;
-      cursor: pointer;
-    }
-    .download-btn:hover {
-      background: rgba(255, 255, 255, 1);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    }
-    .download-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-  </style>
-</head>
-<body>
-  <img src="${imageResult.imageUrl}" alt="AI Generated Image" />
-  <button class="download-btn" onclick="downloadImage()">
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-    </svg>
-    Download
-  </button>
-  <script>
-    async function downloadImage() {
-      try {
-        const imageUrl = "${imageResult.imageUrl}";
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'ai-generated-image.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Download failed:', error);
-        alert('Download failed. You can right-click the image and select "Save image as..."');
-      }
-    }
-  </script>
-</body>
-</html>`;
-
-            resolve({
-              output: imageHTML,
-              results: [finalPrompt, imageResult.imageUrl],
-              detailedSteps: [{
-                stepNumber: 1,
-                originalPrompt: userRequest,
-                fullProcessedPrompt: finalPrompt,
-                response: imageResult.imageUrl,
-                characterCount: finalPrompt.length,
-                model: agent.model
-              }]
-            });
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            reject(new Error(`Image generation failed: ${errorMessage}\n\nMake sure you have set your Wavespeed API key in the API Settings.`));
-          }
-        } else {
-          // Original OpenRouter text generation flow
-          const apiKey = this.getApiKey();
-
-          // Prepare request data
-          const requestData: ProcessSequenceRequest = {
-            prompts: agent.prompts,
-            userRequest,
-            model: agent.model || 'qwen/qwen3-coder',
-            provider: agent.provider || 'openrouter',
-            images
-          };
-
-          // Only add apiKey if it exists
-          if (apiKey) {
-            requestData.apiKey = apiKey;
-          }
-
-          // Use the streaming endpoint for real-time progress
-          this.processPromptSequenceStream(
-            requestData,
-            // onProgress callback
-            (step, totalSteps, description, characterCount) => {
-              if (onProgress) {
-                // step is 1-based from backend, but frontend expects 0-based for calculation
-                onProgress(step - 1, description, characterCount);
-              }
-            },
-            // onStepComplete callback
-            (step, stepResult) => {
-              if (onProgress) {
-                onProgress(step - 1, `Step ${step} completed`, stepResult.length, stepResult);
-              }
-            },
-            // onComplete callback
-            (processResult) => {
-              const finalOutput = processResult.hasHTML ? processResult.extractedHTML : processResult.finalOutput;
-              resolve({
-                output: finalOutput,
-                results: processResult.results,
-                detailedSteps: processResult.detailedSteps || []
-              });
-            },
-            // onError callback
-            (error) => {
-              reject(new Error(error));
-            }
-          );
+        // Add wavespeed configuration if this is a wavespeed agent
+        if (agent.provider === 'wavespeed' && agent.wavespeedConfig) {
+          requestData.wavespeedConfig = agent.wavespeedConfig;
         }
+
+        // Only add apiKey if it exists
+        if (apiKey) {
+          requestData.apiKey = apiKey;
+        }
+
+        // Use the streaming endpoint for real-time progress
+        this.processPromptSequenceStream(
+          requestData,
+          // onProgress callback
+          (step, totalSteps, description, characterCount) => {
+            if (onProgress) {
+              // step is 1-based from backend, but frontend expects 0-based for calculation
+              onProgress(step - 1, description, characterCount);
+            }
+          },
+          // onStepComplete callback
+          (step, stepResult) => {
+            if (onProgress) {
+              onProgress(step - 1, `Step ${step} completed`, stepResult.length, stepResult);
+            }
+          },
+          // onComplete callback
+          (processResult) => {
+            const finalOutput = processResult.hasHTML ? processResult.extractedHTML : processResult.finalOutput;
+            resolve({
+              output: finalOutput,
+              results: processResult.results,
+              detailedSteps: processResult.detailedSteps || []
+            });
+          },
+          // onError callback
+          (error) => {
+            reject(new Error(error));
+          }
+        );
 
       } catch (error) {
         console.error('buildWithAgentStreaming error:', error);
@@ -1227,7 +1104,7 @@ class ApiService {
     apiKey?: string
   }): Promise<{ imageUrl: string; result: any; timestamp: string }> {
     const apiKey = request.apiKey || this.getWavespeedApiKey() || this.getApiKey()
-    
+    console.log("===========", apiKey)
     const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
       method: 'POST',
       headers: {
@@ -1236,12 +1113,12 @@ class ApiService {
       },
       body: JSON.stringify(request)
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json()
       throw new Error(errorData.details || errorData.error || `Image generation failed: ${response.statusText}`)
     }
-    
+
     return await response.json()
   }
 

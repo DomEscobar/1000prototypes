@@ -46,14 +46,14 @@ function getOpenRouter(apiKey?: string, baseUrl?: string): OpenAI {
 }
 
 // Function to get Wavespeed client configuration
-function getWavespeedClient(apiKey?: string, baseUrl?: string) {
+function getWavespeedClient(apiKey?: string) {
   if (!apiKey || !apiKey.trim()) {
     throw new Error('No Wavespeed API key provided. Please set your API key in the application settings.')
   }
   
   return {
     apiKey: apiKey.trim(),
-    baseUrl: baseUrl?.trim() || 'https://api.wavespeed.ai/api/v3'
+    baseUrl: 'https://api.wavespeed.ai/api/v3'
   }
 }
 
@@ -65,8 +65,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
 }): Promise<any> {
   const { model, apiKey, baseUrl, size = '1024*1024', outputFormat = 'png' } = config
   const { images } = options
-  
-  const client = getWavespeedClient(apiKey, baseUrl)
+  const client = getWavespeedClient(apiKey)
   
   // Use the model name directly in the URL (e.g., "bytedance/seedream-v4" or "bytedance/seedream-v4/edit")
   const endpoint = `${client.baseUrl}/${model}`
@@ -251,6 +250,15 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
         stream: false
       })
     }
+  } else if (provider === 'wavespeed') {
+    const wavespeedConfig = config as WavespeedModelConfig
+    const result = await generateImage(wavespeedConfig, prompt, {
+      images: images || [],
+      size: wavespeedConfig.size,
+      outputFormat: wavespeedConfig.outputFormat
+    })
+    
+    return result
   } else {
     throw new Error(`Unsupported provider: ${provider}`)
   }
@@ -712,16 +720,20 @@ api.post('/process-sequence/stream', async (c) => {
         provider: z.enum(['openrouter', 'wavespeed']).optional()
       })
     ])).min(1, 'At least one prompt is required'),
-    userRequest: z.string().min(1, 'User request is required'),
+    userRequest: z.string().default(''),
     model: z.string().default('qwen/qwen3-coder'),
     provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
-    images: z.array(z.string()).optional()
+    images: z.array(z.string()).optional(),
+    wavespeedConfig: z.object({
+      size: z.string().optional(),
+      outputFormat: z.string().optional()
+    }).optional()
   })
 
   try {
-    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, wavespeedConfig } = ProcessSequenceSchema.parse(body)
     // Set up Server-Sent Events headers
     c.header('Content-Type', 'text/plain; charset=utf-8')
     c.header('Cache-Control', 'no-cache')
@@ -811,7 +823,20 @@ api.post('/process-sequence/stream', async (c) => {
 
             try {
               promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
-              const result = await requestThrottler.throttledGenerateContent({ provider: stepProvider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+              
+              const config: any = {
+                provider: stepProvider,
+                model: stepModel,
+                apiKey: apiKey || c.req.header('X-API-Key'),
+                baseUrl
+              }
+              
+              if (stepProvider === 'wavespeed' && wavespeedConfig) {
+                config.size = wavespeedConfig.size || '1024*1024'
+                config.outputFormat = wavespeedConfig.outputFormat || 'png'
+              }
+              
+              const result = await requestThrottler.throttledGenerateContent(config, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
               let response = ''
               let thinking = ''
@@ -836,6 +861,110 @@ api.post('/process-sequence/stream', async (c) => {
                     safeEnqueue(`data: ${progressData}\n\n`);
                   }
                 }
+              } else if (stepProvider === 'wavespeed') {
+                // Wavespeed returns a complete result, not a stream
+                const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
+                
+                // Create an HTML response with the image
+                response = `<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Image</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .download-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1f2937;
+      border: none;
+      border-radius: 8px;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      cursor: pointer;
+    }
+    .download-btn:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+    .download-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <img src="${imageUrl}" alt="AI Generated Image" />
+  <button class="download-btn" onclick="downloadImage()">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+    </svg>
+    Download
+  </button>
+  <script>
+    async function downloadImage() {
+      try {
+        const imageUrl = "${imageUrl}";
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-generated-image.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download failed:', error);
+        alert('Download failed. You can right-click the image and select "Save image as..."');
+      }
+    }
+  </script>
+</body>
+</html>`
+
+                // Send progress update
+                const progressData = JSON.stringify({
+                  type: 'progress',
+                  step: i + 1,
+                  totalSteps: prompts.length,
+                  description: `Image generated successfully`,
+                  characterCount: results.join('').length + response.length,
+                  incrementalContent: response,
+                  timestamp: new Date().toISOString()
+                });
+                safeEnqueue(`data: ${progressData}\n\n`);
               }
 
               results.push(response)
@@ -949,13 +1078,17 @@ api.post('/process-sequence', async (c) => {
     provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
-    images: z.array(z.string()).optional()
+    images: z.array(z.string()).optional(),
+    wavespeedConfig: z.object({
+      size: z.string().optional(),
+      outputFormat: z.string().optional()
+    }).optional()
   })
 
 
 
   try {
-    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, wavespeedConfig } = ProcessSequenceSchema.parse(body)
 
     const results: string[] = []
     const detailedSteps: ProcessStep[] = []
@@ -989,7 +1122,19 @@ api.post('/process-sequence', async (c) => {
       console.log(`Making request with model: ${stepModel}, provider: ${stepProvider} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
 
       try {
-        const result = await requestThrottler.throttledGenerateContent({ provider: stepProvider, model: stepModel, apiKey: apiKey || c.req.header('X-API-Key'), baseUrl }, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
+        const config: any = {
+          provider: stepProvider,
+          model: stepModel,
+          apiKey: apiKey || c.req.header('X-API-Key'),
+          baseUrl
+        }
+        
+        if (stepProvider === 'wavespeed' && wavespeedConfig) {
+          config.size = wavespeedConfig.size || '1024*1024'
+          config.outputFormat = wavespeedConfig.outputFormat || 'png'
+        }
+        
+        const result = await requestThrottler.throttledGenerateContent(config, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
         let response = ''
         let thinking = ''
@@ -1001,6 +1146,70 @@ api.post('/process-sequence', async (c) => {
               response += chunk.choices[0].delta.content;
             }
           }
+        } else if (stepProvider === 'wavespeed') {
+          // Wavespeed returns a complete result, not a stream
+          const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
+          
+          // Create an HTML response with the image
+          response = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Image</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 90%;
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 24px 0;
+            color: #333;
+            font-size: 28px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .prompt {
+            margin-top: 24px;
+            padding: 16px;
+            background: #f7f7f7;
+            border-radius: 8px;
+            color: #666;
+            font-size: 14px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Generated Image</h1>
+        <img src="${imageUrl}" alt="Generated image">
+        <div class="prompt">
+            <strong>Prompt:</strong><br>
+            ${processedPrompt.replace(/<Context>[\s\S]*?<\/Context>\n\n/g, '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+        </div>
+    </div>
+</body>
+</html>`
         }
 
         results.push(response)
