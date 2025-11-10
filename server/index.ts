@@ -708,18 +708,20 @@ api.post('/process-sequence/stream', async (c) => {
       z.string(),
       z.object({
         content: z.string(),
-        model: z.string().optional()
+        model: z.string().optional(),
+        provider: z.enum(['openrouter', 'wavespeed']).optional()
       })
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
     model: z.string().default('qwen/qwen3-coder'),
+    provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
     images: z.array(z.string()).optional()
   })
 
   try {
-    const { prompts, userRequest, model: modelName, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images } = ProcessSequenceSchema.parse(body)
     // Set up Server-Sent Events headers
     c.header('Content-Type', 'text/plain; charset=utf-8')
     c.header('Cache-Control', 'no-cache')
@@ -1449,6 +1451,102 @@ api.post('/community-agents/:id/rate', async (c) => {
       return c.json({ error: 'Validation failed', details: error.errors }, 400);
     }
     return c.json({ error: 'Failed to rate community agent' }, 500);
+  }
+})
+
+// Generate agent prompts endpoint
+api.post('/generate-agent-prompts', async (c) => {
+  const body = await c.req.json()
+  
+  const GeneratePromptsSchema = z.object({
+    name: z.string().min(1, 'Agent name is required'),
+    description: z.string().min(1, 'Agent description is required'),
+    apiKey: z.string().optional(),
+    baseUrl: z.string().optional()
+  })
+  
+  try {
+    const { name, description, apiKey, baseUrl } = GeneratePromptsSchema.parse(body)
+    
+    const prompt = `You are an expert AI agent architect. Based on the following agent name and description, generate a comprehensive prompt sequence (array of prompts) that will enable this agent to accomplish its task.
+
+Agent Name: ${name}
+Agent Description: ${description}
+
+Your task:
+1. Analyze the agent's purpose from the name and description
+2. Break down the task into logical steps
+3. Create a sequence of prompts (typically 2-4 prompts) that guide the agent through the process
+4. Each prompt should build on the previous one and use {USER_REQUEST} placeholder where the user's actual request will be inserted
+
+Guidelines:
+- Each prompt should be a clear instruction for one step in the process
+- Prompts should use the {USER_REQUEST} placeholder to reference the user's input
+- The sequence should flow logically: planning → design → development → polish (or similar workflow)
+- Include specific technical requirements when relevant (e.g., Tailwind CSS, mobile-first, iframe considerations)
+- Return ONLY a valid JSON array of strings, where each string is a prompt
+- Do NOT include markdown code blocks, just the raw JSON array
+
+Example structure:
+[
+  "Step 1: Analysis prompt with {USER_REQUEST}...",
+  "Step 2: Design prompt that references previous step...",
+  "Step 3: Implementation prompt with technical requirements..."
+]
+
+Return the JSON array:`
+    
+    const config: ModelConfig = {
+      provider: 'openrouter',
+      model: 'google/gemini-2.5-flash-lite',
+      apiKey: apiKey || c.req.header('X-API-Key'),
+      baseUrl
+    }
+    
+    const result = await requestThrottler.throttledGenerateContent(config, prompt, { stream: false })
+    
+    let response = ''
+    if (config.provider === 'openrouter') {
+      response = result.choices[0].message.content || ''
+    }
+    
+    // Extract JSON array from response (might be wrapped in code blocks)
+    let prompts: string[] = []
+    try {
+      // Try to parse as direct JSON first
+      prompts = JSON.parse(response.trim())
+    } catch {
+      // Try to extract JSON from code blocks
+      const jsonMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/i)
+      if (jsonMatch) {
+        prompts = JSON.parse(jsonMatch[1])
+      } else {
+        // Try to find JSON array in the response
+        const arrayMatch = response.match(/\[[\s\S]*?\]/)
+        if (arrayMatch) {
+          prompts = JSON.parse(arrayMatch[0])
+        } else {
+          throw new Error('Could not extract JSON array from response')
+        }
+      }
+    }
+    
+    // Validate it's an array of strings
+    if (!Array.isArray(prompts) || !prompts.every(p => typeof p === 'string')) {
+      throw new Error('Response is not a valid array of strings')
+    }
+    
+    return c.json({
+      prompts,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('Generate agent prompts error:', error)
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Validation failed', details: error.errors }, 400)
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    return c.json({ error: 'Failed to generate agent prompts', details: errorMessage }, 500)
   }
 })
 

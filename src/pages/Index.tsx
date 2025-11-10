@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings, History, Trash2 } from "lucide-react";
+import { Plus, Send, Bot, Loader2, Images, Users, X, Github, ImagePlus, EyeOff, Settings, History, Trash2, Sparkles } from "lucide-react";
 import { AgentCard } from "@/components/AgentCard";
 import { Agent } from "@/lib/api";
 import { AgentSettingsModal } from "@/components/AgentSettingsModal";
@@ -42,6 +42,7 @@ const Index = () => {
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -439,13 +440,17 @@ const Index = () => {
         name: agentData.name,
         description: agentData.description || "",
         prompts: agentData.prompts || [],
-        model: agentData.model
+        model: agentData.model,
+        provider: agentData.provider || 'openrouter',
+        wavespeedConfig: agentData.wavespeedConfig
       });
 
       const newAgent: Agent = {
         ...response.agent,
-        model: response.agent.model || "gemini-2.0-flash",
+        model: response.agent.model || "qwen/qwen3-coder",
         prompts: response.agent.prompts || [],
+        provider: response.agent.provider || 'openrouter',
+        wavespeedConfig: response.agent.wavespeedConfig,
         isBuilding: false,
         output: null,
         results: undefined,
@@ -598,6 +603,81 @@ const Index = () => {
     }
   };
 
+  const handleGenerateAgentSequence = async () => {
+    if (!request.trim()) {
+      toast({
+        title: "Please enter a description",
+        description: "You need to provide a description to generate an agent sequence.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!hasApiKey) {
+      toast({
+        title: "API key required",
+        description: "Please set your API key in settings to generate agent sequences.",
+        variant: "destructive"
+      });
+      handleOpenApiSettings();
+      return;
+    }
+
+    setIsGeneratingPrompts(true);
+
+    try {
+      // Extract a name from the request (first few words) and use the full request as description
+      const words = request.trim().split(/\s+/);
+      const suggestedName = words.slice(0, 3).join(' ') || 'Custom Agent';
+      const description = request.trim();
+
+      // Generate prompts based on the description
+      const { prompts } = await apiService.generateAgentPrompts(suggestedName, description);
+
+      if (!prompts || prompts.length === 0) {
+        throw new Error('No prompts generated');
+      }
+
+      // Create a new agent with the generated prompts
+      const newAgent = await apiService.createAgent({
+        name: suggestedName,
+        description: description,
+        prompts: prompts,
+        model: "google/gemini-2.5-flash-lite",
+        provider: "openrouter",
+        status: "active"
+      });
+
+      // Add the new agent to the list
+      const transformedAgent: Agent = {
+        ...newAgent.agent,
+        isBuilding: false,
+        output: null,
+        results: undefined,
+        detailedSteps: undefined
+      };
+
+      setAgents([...agents, transformedAgent]);
+
+      toast({
+        title: "Agent sequence generated!",
+        description: `Created "${suggestedName}" with ${prompts.length} prompt${prompts.length > 1 ? 's' : ''}.`,
+      });
+
+      // Clear the request input
+      setRequest("");
+    } catch (error) {
+      console.error('Failed to generate agent sequence:', error);
+      toast({
+        title: "Failed to generate agent sequence",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPrompts(false);
+    }
+  };
+
   const handleViewOutput = (agent: Agent) => {
     setViewingAgent(agent);
   };
@@ -730,7 +810,7 @@ const Index = () => {
                   value={request}
                   onChange={(e) => setRequest(e.target.value)}
                   placeholder={selectedImages.length > 0 ? "Describe what you want to create with these images..." : "Describe the website you want to create... or drag & drop images"}
-                  className="bg-background border-border text-base sm:text-lg h-12 sm:h-14 pr-12 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                  className="bg-background border-border text-base sm:text-lg h-12 sm:h-14 pr-24 focus:ring-2 focus:ring-primary/20 transition-all duration-200"
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmitRequest()}
                 />
                 {!request.trim() && selectedImages.length === 0 && !isDragging && (
@@ -743,6 +823,22 @@ const Index = () => {
                     disabled={isUploadingImages}
                   >
                     <ImagePlus className="h-4 w-4" />
+                  </Button>
+                )}
+                {request.trim() && !isDragging && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateAgentSequence}
+                    disabled={isGeneratingPrompts || !hasApiKey}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 px-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-all"
+                    title="Generate Agent Sequence"
+                  >
+                    {isGeneratingPrompts ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
                 {isDragging && (

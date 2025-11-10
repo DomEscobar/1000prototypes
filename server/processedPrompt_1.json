@@ -1,97 +1,156 @@
 <Context>
-Of course. As a creative director and UI/UX designer, I see the Human Design body chart not just as data, but as a deeply personal energetic blueprint. The goal is to transform it from a static diagram into a living, breathing digital experience that feels both sacred and intuitive.
+Ah, a challenge worthy of my creative prowess! To imbue a simple task list with the elegance and dynamism of award-winning design, all through the magic of animation. Consider it done. As "Read Rocket," my mission is to transform the mundane act of productivity into an exhilarating, visually arresting experience.
 
-Here is a detailed design concept for a clean, minimal, and creative Human Design body chart.
+Here is my detailed idea plan, crafted with the precision of a Michelin-starred chef and the flair of a seasoned conductor:
+
+## Read Rocket: The Enchanted Task List - Detailed Idea Plan
+
+**Core Concept:** To elevate task management from a chore to a joyous, visually rewarding journey. We're not just ticking boxes; we're launching achievements. The core metaphor is a sentient, energized task list that actively propels the user towards completion with delightful, complex animations.
+
+**Target Audience:** Individuals who appreciate aesthetics, are motivated by visual feedback, and desire a more engaging and inspiring way to manage their daily lives. This includes creatives, students, busy professionals, and anyone seeking a touch of whimsy in their productivity tools.
+
+**Project Name:** Read Rocket
+
+**Slogan:** *Tick. Transform. Transcend.*
 
 ---
 
-### **Project Title: The Celestial Blueprint**
+### **I. Foundational Design Philosophy:**
 
-### 1) Overall Visual Theme and Mood
+1.  **Character-Driven Engagement:** The task list itself is the protagonist. It will possess a distinct personality – energetic, eager, and a little bit cheeky. Every interaction will be a dialogue between the user and this delightful character.
+2.  **Fluidity and Responsiveness:** Animations won't just be decorative; they will be intrinsically linked to user actions, providing immediate, intuitive, and satisfying feedback. Every swipe, tap, or checkmark will trigger a cascade of elegant motion.
+3.  **Micro-Interactions as Macro-Experiences:** Even the smallest user actions (like swiping to complete a task) will be amplified by sophisticated, multi-layered animations that tell a story and celebrate progress.
+4.  **The "Wow" Factor:** We aim to create moments of delightful surprise and awe. Our animations will be complex enough to evoke a sense of craftsmanship and artistic mastery, leading to those coveted "award-winning" distinctions.
+5.  **Performance Optimization:** While striving for visual complexity, we will meticulously optimize animations for smooth performance across a wide range of devices, ensuring accessibility and a seamless user experience.
 
-The guiding theme is **"Energetic Architecture."** We are designing a digital space that feels like a serene, cosmic sanctuary. The mood is **ethereal, insightful, and profoundly personal.**
+---
 
-Imagine interacting with a map of your soul that has been etched onto ancient parchment but illuminated by celestial light. The design will be spacious and uncluttered, using soft light, subtle gradients, and fluid motion to convey the flow of energy. We move away from a dense, technical diagram towards an interactive art piece. The user should feel a sense of calm, curiosity, and wonder as they explore their unique design.
+### **II. Core Animation Pillars & Key Features:**
 
-The overall aesthetic is a fusion of ancient wisdom and modern minimalism. It’s sophisticated, tactile, and reverent.
+**A. The "Launch" & Idle State Animation (The Read Rocket Persona):**
 
-### 2) Color Palette and Typography
+*   **Initial Impression:** Upon opening the app, the task list character (our "Read Rocket") will be in a dynamic, yet inviting, idle state. It's not just sitting there; it's poised, brimming with potential energy.
+*   **Animation Details:**
+    *   **Subtle Breathing:** The character's eyes will gently blink, and its paper might subtly ripple as if breathing.
+    *   **Energized Shimmer:** A faint, pulsating glow or shimmering effect will emanate from its "exhaust" area (as depicted in the image), indicating readiness.
+    *   **Anticipatory Wobble:** A slight, playful wobble of the entire character, as if it's itching to get started.
+    *   **Background Dynamics:** Abstract geometric shapes (like the squares in the image) will gently drift and rotate in the background, adding a sense of cosmic wonder.
+*   **Interaction Trigger:** Any interaction (e.g., tapping a button) will instantly amplify this energy.
 
-The color palette is built around the requested background, creating a warm, organic, and high-contrast experience.
+**B. Task Completion: The "Velocity Boost" Animation:**
 
-*   **Primary Background:** `Parchment (#DDCDBA)` - A warm, earthy, and gentle base that feels natural and timeless.
-*   **Primary Text & Structure:** `Charcoal (#33312E)` - A soft, deep black for primary text and the main lines of the body graph. It's easier on the eyes than pure black and complements the parchment beautifully.
-*   **Defined Energy (Channels & Centers):** `Cosmic Indigo (#4C518C)` - This deep, soulful indigo represents the consistent, defined energy. It contrasts powerfully with the parchment and suggests depth, intuition, and mystery.
-*   **Design Activations (Unconscious):** `Terracotta (#B5654C)` - A muted, earthy red for the "Design" or unconscious planetary activations. This color is grounded and strong, connecting to the physical body.
-*   **Personality Activations (Conscious):** `Charcoal (#33312E)` - We will use the main text color for the "Personality" or conscious activations, creating a clean, consistent look.
-*   **Highlight & Glow:** `Luminous Cream (#F5F0E8)` - A soft, off-white used for interactive highlights, glows, and subtle gradients, suggesting an inner light.
+*   **The Core Fulfillment:** This is where the magic truly ignites. Completing a task isn't just a mental check; it's a tangible boost to the Read Rocket's momentum.
+*   **Animation Details:**
+    *   **Radial Expansion Burst:** As the checkbox is ticked, a concentric ring of light or color will emanate from the checkmark, subtly expanding outwards.
+    *   **Exhaust Combustion:** The "exhaust flames" (as seen in the image) will flare dramatically, taking on a more vibrant and energetic glow. They will elongate and swirl with particle effects (e.g., tiny stars, speed lines).
+    *   **Character Propel:** The entire Read Rocket character will momentarily surge forward with a satisfying "whoosh," accompanied by a slight tilt or lean that emphasizes its forward motion.
+    *   **Strikethrough Elegance:** The text of the completed task will gracefully fade or animate to a strikethrough, perhaps with a subtle downward sweep or a gentle dissolve.
+    *   **Sound Design:** A crisp, satisfying "pop" or "whoosh" sound effect will accompany this animation, reinforcing the tactile feedback.
+    *   **Multi-Task Completion Cascade:** If multiple tasks are completed simultaneously, the animations will stack and cascade, creating a powerful wave of accomplishment. Imagine a symphony of motion!
 
-**Typography:** The typography will create a clear hierarchy and maintain the elegant, clean aesthetic.
+**C. Task Addition: The "Orbit Insertion" Animation:**
 
-*   **Headings (Name, Center Titles):** **Lora** - A contemporary serif with calligraphic roots. It’s elegant, warm, and highly readable, perfect for titles that need to feel both important and personal.
-    *   *Usage: User's Name, "Design," "Personality," and titles in the slide-in info panel.*
-*   **UI Text & Numbers:** **Inter** - A pristine, highly legible sans-serif designed specifically for user interfaces. Its neutrality and clarity make it perfect for all numerical data, labels, and descriptive text, ensuring information is accessible without distracting from the visual experience.
-    *   *Usage: All planetary gate numbers, body copy, and UI labels.*
+*   **Welcoming New Goals:** When a new task is added, it's not just appended; it's gracefully woven into the existing cosmic fabric of the Read Rocket's world.
+*   **Animation Details:**
+    *   **Orbital Path:** The new task will initially appear as a small, glowing orb that orbits the Read Rocket a few times before settling into its designated list position.
+    *   **Gentle Descent:** As it nears its final spot, the orb will gently descend and morph into the task item, with its text smoothly appearing.
+    *   **Background Ripple:** The background elements will momentarily ripple or shift as the new element is introduced, acknowledging the expansion of the mission.
+    *   **Visual Cue:** A subtle glow on the "add task" button will briefly linger after insertion, confirming the action.
 
-### 3) Layout Structure
+**D. Task Reordering & Editing: The "Gravitational Shift" Animation:**
 
-The layout is designed to be a full-screen, immersive experience, breaking away from the rigid three-column format of the original.
+*   **Dynamic Organization:** Moving tasks should feel as natural as manipulating celestial bodies.
+*   **Animation Details:**
+    *   **Drag & Trail:** As a task is dragged, it will leave a subtle, luminous trail behind it. Other tasks will gently nudge aside to accommodate its movement.
+    *   **Gravitational Pull:** When the task is released, it will have a slight "settling" animation, as if being pulled into its new position by a gentle gravitational force, accompanied by minor rotations and adjustments of surrounding tasks.
+    *   **Editing Reveal:** When a task is selected for editing, its text will subtly "unfold" or expand, revealing the editing interface in a fluid manner.
 
-1.  **The Canvas:** The central and largest part of the screen is dedicated entirely to the body chart itself. It sits atop the `Parchment` background, free of any boxes or borders. This is the sacred, interactive space.
-2.  **The Profile Header:** Positioned elegantly at the top center. It simply contains the user's name (e.g., "NILOUFAR") in the Lora typeface, and below it, their Human Design Type & Profile (e.g., "Manifesting Generator 5/1"). This gives immediate, high-level context.
-3.  **The Interactive Gates Panel:** Instead of two static columns, we use a single, elegant panel on the left. It features two clear tabs: **"Personality" (Conscious)** and **"Design" (Unconscious)**. Clicking a tab smoothly transitions the list of planetary gates. This saves 50% of the screen real estate, drastically reducing clutter. Each item in the list will be interactive.
-4.  **The Insight Panel:** This is a dynamic panel that is hidden by default. When the user clicks on any element of the chart (a Center, Channel, or Gate), this panel gracefully slides in from the right. It contains detailed, digestible information about the selected element, using beautiful typography and clear-cut sections. This keeps the user in the context of their chart while they learn.
-5.  **The Action Bar:** A minimalist, almost invisible bar at the bottom right corner. It contains three simple, clean icons: **Download (PDF)**, **Share**, and **Info/Guide** (which explains the different symbols and colors). These actions are secondary and kept out of the way to maintain focus on the chart.
+**E. "Focus Mode" & Ambient States:**
 
-### 4) Interactive Elements and Animation Concepts
+*   **Deep Work Immersion:** When a user enters a focused state, the UI will subtly transform to minimize distractions and highlight the task at hand.
+*   **Animation Details:**
+    *   **Background Dimming & Zoom:** The background elements will gently dim and slightly zoom out, drawing attention to the active task.
+    *   **Task Highlight:** The currently focused task will receive a gentle, pulsing halo or subtle glow.
+    *   **Read Rocket's Quiet Watch:** The Read Rocket character will enter a more serene, yet still attentive, idle state. Its "exhaust" will dim considerably, perhaps emitting only faint wisps of light, signifying its silent support during concentration.
 
-Animation is used purposefully to bring the chart to life and guide the user's attention.
+---
 
-*   **Initial Load Animation:** The page loads with just the empty body graph outline, drawn softly in `Charcoal`. Then, the Defined Centers gently fade in with a `Cosmic Indigo` gradient. Finally, the energy channels animate, with a soft line of light flowing from one gate to another, visually "activating" the connection. This creates a powerful "reveal" of the user's blueprint.
-*   **Living Centers:** Defined (colored) Centers will have a subtle, slow "breathing" animation—a gentle pulse where the inner gradient brightens and softens. This makes the chart feel alive and energetic. Undefined (white) centers remain static, beautifully emphasizing the contrast between consistent and open energy.
-*   **Energy Flow in Channels:** The defined channels (the lines connecting centers) will not be static fills. Instead, they will feature a slow, perpetually moving shimmer or light particle animation along their path, using the `Luminous Cream` color. This visually represents the constant flow of energy.
-*   **Hover & Focus:**
-    *   **On the Chart:** Hovering over a gate, channel, or center causes it to emit a soft `Luminous Cream` glow. Its corresponding number/data in the Gates Panel on the left will simultaneously be highlighted.
-    *   **On the Panel:** Hovering over a planetary gate in the left-hand panel will cause its corresponding gate on the body chart to glow. This creates an intuitive link between the data and its visual representation.
-*   **The "Insight" Transition:** When a user clicks on a center (e.g., the Sacral), the rest of the chart subtly desaturates and blurs by a tiny amount. The selected center remains sharp and vibrant. Simultaneously, the Insight Panel slides in smoothly from the right, creating a clear focus on the information being presented. Clicking the "close" button or outside the panel reverses this animation.
+### **III. Visual Design & Aesthetics:**
 
-### 5) User Journey and Experience Flow
+*   **Color Palette:** A palette of warm, energetic oranges, deep cosmic blues/purples, and clean whites/creams. Think starlight meeting friendly, approachable cartoon character.
+*   **Typography:** Clean, modern, and legible sans-serif fonts that are easy to read at a glance.
+*   **Illustration Style:** The Read Rocket character will possess a hand-drawn, slightly rounded aesthetic, evoking a sense of warmth and approachability. The particle effects and background elements will have a slightly more abstract, ethereal quality.
+*   **UI Elements:** Minimalist and context-aware, allowing the animations to take center stage. Buttons and interactive elements will have subtle hover and press states that echo the main animation themes.
 
-The user flow is designed to be a journey of discovery, from a broad overview to specific, deep insights.
+---
 
-1.  **Arrival & The Reveal:** The user lands on their personal chart page. They are greeted by the calming `Parchment` background. The load animation plays, drawing their blueprint before their eyes. This moment is designed to create a sense of awe and personal connection. The high-level info (Name, Type) is immediately available at the top.
-2.  **Exploration & Curiosity:** The user sees their completed chart, alive with subtle motion. The clean layout invites exploration rather than overwhelming them. Their eyes are naturally drawn to the glowing, breathing `Cosmic Indigo` centers. They hover over one, and it brightens, with a tooltip appearing ("Throat Center").
-3.  **Deep Dive & Learning:** They click on the Throat Center. The world around it softly focuses out, and the **Insight Panel** glides in from the right. Here they find beautifully formatted text explaining what their *defined* Throat Center means. The language is supportive and empowering.
-4.  **Making Connections:** While reading, they see a reference to "Gate 16." They find Gate 16 in the **Interactive Gates Panel** on the left (under either Personality or Design). They click it. The chart instantly updates its focus to Gate 16, and the Insight Panel transitions seamlessly to display information about this specific gate. The flow is frictionless, encouraging a chain of discovery.
-5.  **Sharing & Integration:** After exploring their design, the user feels a sense of clarity. They click the **Download icon** in the corner. This generates a visually stunning, minimalist PDF of their chart and keynotes—a beautiful takeaway of their Celestial Blueprint that they can save or share.
+### **IV. User Experience Flows & Iteration:**
 
-This design concept transforms the Human Design chart from a complex diagram into a personal, interactive, and beautiful experience that honors the depth of the system it represents.
+*   **Onboarding:** A brief, visually-rich onboarding sequence demonstrating the core animations and character's personality.
+*   **Feedback Loops:** Every action will be met with immediate, delightful visual and auditory feedback.
+*   **Progress Visualization:** Beyond simple progress bars, the overall dynamism of the Read Rocket itself will reflect the user's productivity. A highly energetic Read Rocket signifies a highly productive user.
+*   **Iterative Refinement:** Continuous user testing and feedback will be crucial to fine-tune the animation timings, complexity, and emotional impact. We'll be looking for those "aha!" moments of pure delight.
+
+---
+
+### **V. Technical Considerations:**
+
+*   **Animation Engine:** Utilizing advanced animation libraries (e.g., Lottie, Rive, Bodymovin) for complex, scalable animations.
+*   **Performance Optimization:** Careful use of hardware acceleration, asset optimization, and efficient rendering techniques.
+*   **Cross-Platform Compatibility:** Ensuring the animations translate beautifully across iOS, Android, and web platforms.
+
+---
+
+### **VI. The "Award-Winning" Edge:**
+
+The "award-winning" aspect comes from the **synergy** of these elements. It's not just one animation, but the entire ecosystem of motion that tells a cohesive and compelling story. Our animations will be:
+
+1.  **Unconventionally Complex:** Moving beyond simple fades and slides to intricate particle systems, physics-based interactions, and shape morphing.
+2.  **Emotionally Resonant:** Eliciting feelings of joy, accomplishment, and even a sense of wonder.
+3.  **Purpose-Driven:** Every animation will serve a clear UX purpose – providing feedback, guiding the user, or reinforcing a positive behavior.
+4.  **Technically Masterful:** Demonstrating a deep understanding of animation principles and execution.
+
+This is Read Rocket. We're not just building an app; we're crafting an experience. We're transforming the act of managing tasks into a vibrant, dynamic, and utterly captivating journey. The awards will follow the sheer joy and effectiveness this design delivers. Let's ignite this project!
 </Context>
 
-Original User Request:: Create me this human design body chart with clean minimal design like this background color is #DDCDBA  .
+Act like a high class senior developer which is known to write entirely apps and websites In a clean single HTML file.
 
-You are a frontend development expert who specializes in creating pixel-perfect, responsive websites with complex animations using pure HTML, CSS, and JavaScript.
+**IMPORTANT: Your HTML will be rendered inside an iframe for security and isolation. Design and code with iframe context in mind.**
 
-Take the design concept from the previous step and implement it as a complete, production-ready HTML file.
+You stick to your principles:
+- clean code
+- Any coding principle.
+
+You plan every step in a short roadmap before you start.
+
+Given task: Implement now this detailed plan mentioned with completion and fine grained every detail as single html.
+
+Focus on mobile first experience - design and develop for mobile devices first, then scale up to larger screens.
+Focus on feature completion this a production based app.
+Your perfectionist in sizes, positions and animations.
+Ensure the design is fully responsive across all device sizes (mobile, tablet, desktop).
+
+**Iframe-specific considerations:**
+- When using GSAP ScrollTrigger, ensure it works within iframe context
+- For scroll-based animations, use the iframe's window and document
+- Implement smooth scrolling for anchor links within the iframe
+- Consider iframe viewport constraints in responsive design
+- Avoid code that attempts to break out of iframe security context
 
 Requirements:
 - Include Tailwind CSS: <script src="https://cdn.tailwindcss.com"></script>
-- Choose and include a matching Google Font: <link href="https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap" rel="stylesheet"> and set it as the default font family
+- Choose and include a matching Google Font: <link href="https://fonts.googleapis.com/css2?family=[FONT_NAME]:wght@300;400;500;600;700&display=swap" rel="stylesheet"> and set it as the default font family.
 - **IMPORTANT**: Use `window.addEventListener('load')` instead of `DOMContentLoaded` for initialization
 - You may use any 3rd party JavaScript and CSS libraries as needed via CDN links, such as:
   * Three.js: <script src="https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.tsl.min.js"></script>
   * GSAP: <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
- * Vivus.js: <script src="https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js"></script>
+  * GSAP ScrollTrigger: <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+  * Vivus.js: <script src="https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js"></script>
   * Chart.js: <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   * Particles.js: <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
   * Or any other libraries that enhance the functionality and user experience
-- Mobile-first responsive design - ALWAYS design and develop for mobile devices first, then scale up to larger screens
-- Ensure perfect responsiveness across all device sizes (mobile 320px+, tablet 768px+, desktop 1024px+)
-- Smooth animations and transitions
-- Clean, semantic HTML structure
-- Modern CSS techniques (Grid, Flexbox, Custom Properties)
-- Optimized performance
-- For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:
+
+For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:
 
 Format: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]
 
@@ -100,4 +159,4 @@ Optional Parameters:
 
 IMPORTANT: Use FIXED IDs in your code, not random generators!
 
-Deliver a complete, self-contained HTML file.
+Response me the single HTML file now, optimized for iframe rendering:

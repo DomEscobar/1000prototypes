@@ -394,7 +394,7 @@ export function OutputViewer({ isOpen, onClose, agent, userRequest, onAgentUpdat
                     srcDoc={processHTMLForIframe(hasUnsavedChanges ? editedHtml : html)}
                     className="w-full h-full min-h-[75vh] sm:h-[70vh] max-w-full border-0"
                     title={`${agent.name} Output`}
-                    sandbox="allow-scripts allow-same-origin allow-popups"
+                    sandbox="allow-scripts allow-same-origin allow-popups allow-downloads"
                   />
                 </Card>
               </div>

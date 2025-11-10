@@ -209,7 +209,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
                   srcDoc={processHTMLForIframe(preview)}
                   className="w-full h-64 border-0 bg-background"
                   title={`${agent.name} Preview`}
-                  sandbox="allow-scripts allow-same-origin"
+                  sandbox="allow-scripts allow-same-origin allow-downloads"
                 />
               </div>
             ) : (
