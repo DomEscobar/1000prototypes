@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Settings, Key, Eye, EyeOff, ExternalLink, AlertTriangle, Image } from "lucide-react";
+import { Settings, Key, Eye, EyeOff, ExternalLink, AlertTriangle, Image, Share2, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
+import { exportConfiguration, generateShareableLink } from "@/lib/configSharing";
 
 // LocalStorage keys for OpenRouter API key and base URL
 const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter-api-key';
@@ -26,6 +27,9 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasOpenRouterKey, setHasOpenRouterKey] = useState(false);
   const [hasWavespeedKey, setHasWavespeedKey] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareableLink, setShareableLink] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     // Load existing API keys and base URL on component mount
@@ -197,6 +201,45 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
     }
   };
 
+  const handleGenerateShareLink = () => {
+    try {
+      const config = exportConfiguration(true, true);
+      const link = generateShareableLink(config);
+      setShareableLink(link);
+      setShareDialogOpen(true);
+      setLinkCopied(false);
+    } catch (error) {
+      console.error('Failed to generate share link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate share link",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      setLinkCopied(true);
+      toast({
+        title: "Success",
+        description: "Share link copied to clipboard",
+      });
+      
+      setTimeout(() => {
+        setLinkCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -208,13 +251,27 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
 
       <DialogContent className="max-w-2xl max-h-[90vh] bg-gradient-card border-border overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <Key className="h-5 w-5" />
-            API Key Configuration
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Configure your API settings including base URL and API key to enable AI-powered features
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2 text-foreground">
+                <Key className="h-5 w-5" />
+                API Key Configuration
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Configure your API settings including base URL and API key to enable AI-powered features
+              </DialogDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateShareLink}
+              className="gap-2"
+              disabled={!hasOpenRouterKey && !hasWavespeedKey}
+            >
+              <Share2 className="h-4 w-4" />
+              Share Config
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 overflow-y-auto flex-1 pr-2">
@@ -432,6 +489,81 @@ export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
 
         </div>
       </DialogContent>
+
+      {/* Share Configuration Dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-2xl bg-gradient-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Share2 className="h-5 w-5" />
+              Share Configuration
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Share your API keys and agent setup with collaborators
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/20">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                <strong>Security Warning:</strong> This link contains your API keys. Only share with trusted collaborators.
+                Anyone with this link can use your API keys.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label className="text-foreground">Shareable Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={shareableLink}
+                  readOnly
+                  className="bg-background border-border font-mono text-xs"
+                />
+                <Button
+                  onClick={handleCopyShareLink}
+                  className="gap-2 bg-gradient-primary hover:opacity-90"
+                >
+                  {linkCopied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Share this link with your team. They can open it to automatically import your configuration.
+              </p>
+            </div>
+
+            <div className="space-y-2 p-4 bg-secondary/30 rounded-lg border border-border/50">
+              <h4 className="text-sm font-semibold text-foreground">What's included:</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
+                  {hasOpenRouterKey && 'OpenRouter API key and base URL'}
+                  {!hasOpenRouterKey && <span className="text-muted-foreground/50">No OpenRouter API key</span>}
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
+                  {hasWavespeedKey && 'Wavespeed API key'}
+                  {!hasWavespeedKey && <span className="text-muted-foreground/50">No Wavespeed API key</span>}
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
+                  All your custom agents and configurations
+                </li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }; 
