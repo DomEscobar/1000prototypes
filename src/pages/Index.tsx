@@ -300,7 +300,7 @@ const Index = () => {
       // Transform agents to include runtime properties
       const transformedAgents: Agent[] = response.agents.map(agent => ({
         ...agent,
-        model: agent.model || "qwen/qwen3-coder",
+        model: agent.model || "google/gemini-2.5-flash-lite",
         provider: agent.provider || "openrouter",
         wavespeedConfig: agent.wavespeedConfig,
         prompts: agent.prompts || [],
@@ -447,7 +447,7 @@ const Index = () => {
 
       const newAgent: Agent = {
         ...response.agent,
-        model: response.agent.model || "qwen/qwen3-coder",
+        model: response.agent.model || "google/gemini-2.5-flash-lite",
         prompts: response.agent.prompts || [],
         provider: response.agent.provider || 'openrouter',
         wavespeedConfig: response.agent.wavespeedConfig,
@@ -603,14 +603,14 @@ const Index = () => {
     }
   };
 
-  const handleGenerateAgentSequence = async () => {
-    if (!request.trim()) {
+  const generateAgentSequenceData = async (description: string) => {
+    if (!description.trim()) {
       toast({
         title: "Please enter a description",
         description: "You need to provide a description to generate an agent sequence.",
         variant: "destructive"
       });
-      return;
+      return null;
     }
 
     if (!hasApiKey) {
@@ -620,35 +620,53 @@ const Index = () => {
         variant: "destructive"
       });
       handleOpenApiSettings();
-      return;
+      return null;
     }
 
-    setIsGeneratingPrompts(true);
-
     try {
-      // Extract a name from the request (first few words) and use the full request as description
-      const words = request.trim().split(/\s+/);
+      const words = description.trim().split(/\s+/);
       const suggestedName = words.slice(0, 3).join(' ') || 'Custom Agent';
-      const description = request.trim();
 
-      // Generate prompts based on the description
       const { prompts } = await apiService.generateAgentPrompts(suggestedName, description);
 
       if (!prompts || prompts.length === 0) {
         throw new Error('No prompts generated');
       }
 
-      // Create a new agent with the generated prompts
-      const newAgent = await apiService.createAgent({
+      return {
         name: suggestedName,
         description: description,
-        prompts: prompts,
+        prompts: prompts
+      };
+    } catch (error) {
+      console.error('Failed to generate agent sequence:', error);
+      toast({
+        title: "Failed to generate agent sequence",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
+  const handleGenerateAgentSequence = async () => {
+    setIsGeneratingPrompts(true);
+
+    try {
+      const result = await generateAgentSequenceData(request);
+      
+      if (!result) {
+        return;
+      }
+
+      const newAgent = await apiService.createAgent({
+        name: result.name,
+        description: result.description,
+        prompts: result.prompts,
         model: "google/gemini-2.5-flash-lite",
-        provider: "openrouter",
-        status: "active"
+        provider: "openrouter"
       });
 
-      // Add the new agent to the list
       const transformedAgent: Agent = {
         ...newAgent.agent,
         isBuilding: false,
@@ -661,18 +679,10 @@ const Index = () => {
 
       toast({
         title: "Agent sequence generated!",
-        description: `Created "${suggestedName}" with ${prompts.length} prompt${prompts.length > 1 ? 's' : ''}.`,
+        description: `Created "${result.name}" with ${result.prompts.length} prompt${result.prompts.length > 1 ? 's' : ''}.`,
       });
 
-      // Clear the request input
       setRequest("");
-    } catch (error) {
-      console.error('Failed to generate agent sequence:', error);
-      toast({
-        title: "Failed to generate agent sequence",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive"
-      });
     } finally {
       setIsGeneratingPrompts(false);
     }
@@ -967,6 +977,8 @@ const Index = () => {
         onClose={() => setIsSettingsOpen(false)}
         agent={editingAgent}
         onSave={handleSaveAgent}
+        onGenerateSequence={generateAgentSequenceData}
+        isGeneratingSequence={isGeneratingPrompts}
       />
 
       <OutputViewer

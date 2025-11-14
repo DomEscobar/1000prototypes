@@ -1,8 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // LocalStorage keys for API key and base URL
-const API_KEY_STORAGE_KEY = 'openrouter-api-key';
-const BASE_URL_STORAGE_KEY = 'openrouter-base-url';
+export const API_KEY_STORAGE_KEY = 'openrouter-api-key';
+export const BASE_URL_STORAGE_KEY = 'openrouter-base-url';
+export const WAVESPEED_API_KEY_STORAGE_KEY = 'wavespeed-api-key';
 
 // Enhanced prompt interface to support per-prompt models and providers
 export interface PromptStep {
@@ -101,6 +102,8 @@ export interface ProcessSequenceRequest {
   apiKey?: string;
   baseUrl?: string; // Support for configurable base URL
   images?: string[]; // Support for image URLs or base64 data
+  openrouterApiKey?: string;
+  wavespeedApiKey?: string;
   wavespeedConfig?: {
     size?: string;
     outputFormat?: string;
@@ -237,7 +240,7 @@ class LocalAgentService {
       // Update legacy Gemini models to OpenRouter equivalents
       let model = agent.model;
       if (model === 'gemini-2.0-flash' || model === 'gemini-2.5-flash' || model === 'gemini-1.5-flash') {
-        model = 'qwen/qwen3-coder';
+        model = 'google/gemini-2.5-flash-lite';
       } else if (model === 'gemini-2.5-pro' || model === 'gemini-1.5-pro') {
         model = 'anthropic/claude-3.5-sonnet';
       }
@@ -992,7 +995,7 @@ class ApiService {
       const requestData: ProcessSequenceRequest = {
         prompts: agent.prompts,
         userRequest,
-        model: agent.model || 'qwen/qwen3-coder',
+        model: agent.model || 'google/gemini-2.5-flash-lite',
         provider: agent.provider || 'openrouter'
       };
 
@@ -1034,26 +1037,24 @@ class ApiService {
           return;
         }
 
-        // Use unified prompt sequence flow for both OpenRouter and Wavespeed
-        const apiKey = agent.provider === 'wavespeed' ? (this.getWavespeedApiKey() || this.getApiKey()) : this.getApiKey();
+        // Get both API keys to pass to backend
+        const openrouterApiKey = this.getApiKey();
+        const wavespeedApiKey = this.getWavespeedApiKey();
 
         // Prepare request data
         const requestData: ProcessSequenceRequest = {
           prompts: agent.prompts,
           userRequest,
-          model: agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'),
+          model: agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'google/gemini-2.5-flash-lite'),
           provider: agent.provider || 'openrouter',
-          images
+          images,
+          openrouterApiKey: openrouterApiKey || undefined,
+          wavespeedApiKey: wavespeedApiKey || undefined
         };
 
         // Add wavespeed configuration if this is a wavespeed agent
         if (agent.provider === 'wavespeed' && agent.wavespeedConfig) {
           requestData.wavespeedConfig = agent.wavespeedConfig;
-        }
-
-        // Only add apiKey if it exists
-        if (apiKey) {
-          requestData.apiKey = apiKey;
         }
 
         // Use the streaming endpoint for real-time progress

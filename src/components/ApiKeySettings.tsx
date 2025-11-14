@@ -8,13 +8,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Settings, Key, Eye, EyeOff, ExternalLink, AlertTriangle, Image, Share2, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiService } from "@/lib/api";
+import { apiService, API_KEY_STORAGE_KEY, BASE_URL_STORAGE_KEY, WAVESPEED_API_KEY_STORAGE_KEY } from "@/lib/api";
 import { exportConfiguration, generateShareableLink } from "@/lib/configSharing";
 
-// LocalStorage keys for OpenRouter API key and base URL
-const OPENROUTER_API_KEY_STORAGE_KEY = 'openrouter-api-key';
-const OPENROUTER_BASE_URL_STORAGE_KEY = 'openrouter-base-url';
-const WAVESPEED_API_KEY_STORAGE_KEY = 'wavespeed-api-key';
+const OPENROUTER_API_KEY_STORAGE_KEY = API_KEY_STORAGE_KEY;
+const OPENROUTER_BASE_URL_STORAGE_KEY = BASE_URL_STORAGE_KEY;
 
 export const ApiKeySettings = ({ open = false }: { open?: boolean }) => {
   const { toast } = useToast();

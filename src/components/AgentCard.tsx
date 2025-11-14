@@ -131,7 +131,7 @@ export const AgentCard = ({ agent, onEdit, onRemove, onViewOutput, onToggleStatu
     }
 
     const normalizedPrompts = normalizePrompts(agent.prompts);
-    const defaultModel = agent.model || 'qwen/qwen3-coder';
+    const defaultModel = agent.model || 'google/gemini-2.5-flash-lite';
 
     // Get all models used (including default)
     const modelsUsed = normalizedPrompts.map(prompt => prompt.model || defaultModel);

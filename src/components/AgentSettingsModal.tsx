@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Plus, X, GripVertical, Info, Maximize2, Minimize2, Bot } from "lucide-react";
+import { Plus, X, GripVertical, Info, Maximize2, Minimize2, Bot, Sparkles } from "lucide-react";
 import { Agent, PromptStep, normalizePrompts } from "@/lib/api";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -16,9 +16,11 @@ interface AgentSettingsModalProps {
   onClose: () => void;
   agent: Agent | null;
   onSave: (agent: Agent) => void;
+  onGenerateSequence?: (description: string) => Promise<{ name: string; description: string; prompts: any[] } | null>;
+  isGeneratingSequence?: boolean;
 }
 
-export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSettingsModalProps) {
+export function AgentSettingsModal({ isOpen, onClose, agent, onSave, onGenerateSequence, isGeneratingSequence = false }: AgentSettingsModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
@@ -30,11 +32,11 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
   const [imageSize, setImageSize] = useState('1024*1024');
   const [outputFormat, setOutputFormat] = useState('png');
   
-  // New state for expanded textarea modal
   const [expandedPromptIndex, setExpandedPromptIndex] = useState<number | null>(null);
   const [expandedPromptValue, setExpandedPromptValue] = useState("");
   const [expandedPromptModel, setExpandedPromptModel] = useState<string>("");
   const [expandedPromptProvider, setExpandedPromptProvider] = useState<'openrouter' | 'wavespeed' | '' | 'default'>('');   
+  const [isGeneratingInModal, setIsGeneratingInModal] = useState(false);
   
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -46,7 +48,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setDescription(agent.description || "");
       setStatus(agent.status || "active");
       setProvider(agent.provider || "openrouter");
-      setModel(agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'));
+      setModel(agent.model || (agent.provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'google/gemini-2.5-flash-lite'));
       
       // Load Wavespeed configuration
       setImageSize(agent.wavespeedConfig?.size || '1024*1024');
@@ -60,7 +62,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       setDescription("");
       setStatus("active");
       setProvider("openrouter");
-      setModel("qwen/qwen3-coder");
+      setModel("google/gemini-2.5-flash-lite");
       setImageSize('1024*1024');
       setOutputFormat('png');
       setPrompts([{ content: "" }]);
@@ -133,6 +135,45 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
     setExpandedPromptProvider("");
   };
 
+  const handleGenerateInModal = async () => {
+    if (!onGenerateSequence || !description.trim()) {
+      toast({
+        title: "Please enter a description",
+        description: "You need to provide a description to generate an agent sequence.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingInModal(true);
+
+    try {
+      const result = await onGenerateSequence(description);
+      
+      if (!result) {
+        return;
+      }
+
+      setName(result.name);
+      const normalizedPrompts = normalizePrompts(result.prompts);
+      setPrompts(normalizedPrompts.length > 0 ? normalizedPrompts : [{ content: "" }]);
+
+      toast({
+        title: "Sequence generated!",
+        description: `Generated ${result.prompts.length} prompt${result.prompts.length > 1 ? 's' : ''}.`,
+      });
+    } catch (error) {
+      console.error('Failed to generate sequence:', error);
+      toast({
+        title: "Failed to generate sequence",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingInModal(false);
+    }
+  };
+
   const handleSave = () => {
     const filteredPrompts = prompts.filter(p => typeof p.content === 'string' && p.content.trim());
     
@@ -142,7 +183,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
       description: description || "",
       status: status,
       provider: provider,
-      model: model.trim() || (provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'qwen/qwen3-coder'),
+      model: model.trim() || (provider === 'wavespeed' ? 'bytedance/seedream-v4' : 'google/gemini-2.5-flash-lite'),
       wavespeedConfig: provider === 'wavespeed' ? {
         size: imageSize,
         outputFormat: outputFormat
@@ -183,7 +224,31 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
 
             {/* Agent Description */}
             <div className="space-y-2">
-              <Label htmlFor="agent-description" className="text-foreground">Description</Label>
+              <div className={`${isMobile ? 'space-y-2' : 'flex items-center justify-between'}`}>
+                <Label htmlFor="agent-description" className="text-foreground">Description</Label>
+                {onGenerateSequence && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size={isMobile ? "default" : "sm"}
+                    onClick={handleGenerateInModal}
+                    disabled={isGeneratingInModal || !description.trim()}
+                    className={`flex items-center gap-2 ${isMobile ? 'w-full justify-center' : ''}`}
+                  >
+                    {isGeneratingInModal ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin inline-block">⚡</span>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Generate Sequence
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
               <Textarea
                 id="agent-description"
                 value={description}
@@ -258,14 +323,14 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                 placeholder={
                   provider === 'wavespeed' 
                     ? "e.g., bytedance/seedream-v4, google/nano-banana/text-to-image"
-                    : "e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
+                    : "e.g., anthropic/claude-3.5-sonnet, google/gemini-2.5-flash-lite, openai/gpt-4o"
                 }
                 className="bg-background border-border"
               />
               <p className="text-xs text-muted-foreground">
                 {provider === 'wavespeed'
                   ? 'Wavespeed models: bytedance/seedream-v4 (text-to-image & editing), google/nano-banana/text-to-image'
-                  : 'This model will be used for prompts that don\'t specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite'}
+                  : 'This model will be used for prompts that don\'t specify their own model. Popular models: anthropic/claude-3.5-sonnet, google/gemini-2.5-flash-lite, openai/gpt-4o, google/gemini-2.5-flash-lite'}
               </p>
             </div>
 
@@ -419,7 +484,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                             <Input
                               value={prompt.model || ""}
                               onChange={(e) => handlePromptModelChange(index, e.target.value)}
-                              placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                              placeholder={`Leave empty to use default (${model || 'google/gemini-2.5-flash-lite'})`}
                               className="bg-background border-border h-8 text-xs"
                             />
                           </div>
@@ -553,7 +618,7 @@ export function AgentSettingsModal({ isOpen, onClose, agent, onSave }: AgentSett
                 <Input
                   value={expandedPromptModel}
                   onChange={(e) => setExpandedPromptModel(e.target.value)}
-                  placeholder={`Leave empty to use default (${model || 'qwen/qwen3-coder'})`}
+                  placeholder={`Leave empty to use default (${model || 'google/gemini-2.5-flash-lite'})`}
                   className="bg-background border-border"
                 />
               </div>

@@ -51,7 +51,7 @@ function getWavespeedClient(apiKey?: string) {
   if (!apiKey || !apiKey.trim()) {
     throw new Error('No Wavespeed API key provided. Please set your API key in the application settings.')
   }
-  
+
   return {
     apiKey: apiKey.trim(),
     baseUrl: 'https://api.wavespeed.ai/api/v3'
@@ -62,12 +62,12 @@ function getWavespeedClient(apiKey?: string) {
 async function getImageDimensions(imageDataOrUrl: string): Promise<{ width: number; height: number } | null> {
   try {
     let imageBuffer: Buffer;
-    
+
     // Check if it's a base64 data URL
     if (imageDataOrUrl.startsWith('data:image/')) {
       const base64Data = imageDataOrUrl.split(',')[1];
       imageBuffer = Buffer.from(base64Data, 'base64');
-    } 
+    }
     // Check if it's a URL
     else if (imageDataOrUrl.startsWith('http://') || imageDataOrUrl.startsWith('https://')) {
       const response = await fetch(imageDataOrUrl);
@@ -76,14 +76,14 @@ async function getImageDimensions(imageDataOrUrl: string): Promise<{ width: numb
     } else {
       return null;
     }
-    
+
     // Use image-size library to get dimensions
     const dimensions = imageSize(imageBuffer);
-    
+
     if (dimensions.width && dimensions.height) {
       return { width: dimensions.width, height: dimensions.height };
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting image dimensions:', error);
@@ -100,10 +100,10 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
   const { model, apiKey, baseUrl, size = 'original', outputFormat = 'png' } = config
   const { images } = options
   const client = getWavespeedClient(apiKey)
-  
+
   // Use the model name directly in the URL (e.g., "bytedance/seedream-v4" or "bytedance/seedream-v4/edit")
   const endpoint = `${client.baseUrl}/${model}`
-  
+
   // Determine the actual size to use
   let actualSize = size;
   if (size === 'original' && images && images.length > 0) {
@@ -113,7 +113,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
       let { width, height } = dimensions;
       const totalPixels = width * height;
       const minPixels = 921600; // Wavespeed minimum requirement
-      
+
       // Auto-upscale if image is too small
       if (totalPixels < minPixels) {
         const scaleFactor = Math.sqrt(minPixels / totalPixels);
@@ -124,7 +124,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
       } else {
         console.log(`Detected original image size: ${width}*${height} (${totalPixels} pixels)`);
       }
-      
+
       actualSize = `${width}*${height}`;
     } else {
       console.warn('Could not detect image dimensions, using default 1024*1024');
@@ -135,7 +135,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
     console.log('No images provided for "original" size, using default 1024*1024');
     actualSize = '1024*1024';
   }
-  
+
   const requestBody: any = {
     enable_base64_output: config.enableBase64Output || false,
     enable_sync_mode: config.enableSyncMode || false,
@@ -151,7 +151,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
   if (images && images.length > 0) {
     requestBody.images = images
   }
-  
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -160,16 +160,16 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
     },
     body: JSON.stringify(requestBody)
   })
-  
+
   if (!response.ok) {
     const errorText = await response.text()
     throw new Error(`Wavespeed API error: ${response.status} ${response.statusText} - ${errorText}`)
   }
-  
+
   const result = await response.json() as any
   const requestId = result.data.id
   console.log(`Task submitted successfully. Request ID: ${requestId}`)
-  
+
   // Poll for result
   while (true) {
     const pollResponse = await fetch(
@@ -180,13 +180,13 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
         }
       }
     )
-    
+
     const pollResult = await pollResponse.json() as any
-    
+
     if (pollResponse.ok) {
       const data = pollResult.data
       const status = data.status
-      
+
       if (status === 'completed') {
         const resultUrl = data.outputs[0]
         console.log('Task completed. URL:', resultUrl)
@@ -201,7 +201,7 @@ async function generateImage(config: WavespeedModelConfig, prompt: string, optio
       console.error('Error:', pollResponse.status, JSON.stringify(pollResult))
       throw new Error(`Polling failed: ${pollResponse.status} ${JSON.stringify(pollResult)}`)
     }
-    
+
     // Wait 0.1 seconds before next poll
     await new Promise(resolve => setTimeout(resolve, 0.1 * 1000))
   }
@@ -293,7 +293,6 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
       messageContent = prompt;
     }
 
-
     const messages = [
       {
         role: 'user' as const,
@@ -323,7 +322,7 @@ async function generateContent(config: ModelConfig, prompt: string, options: {
       size: wavespeedConfig.size,
       outputFormat: wavespeedConfig.outputFormat
     })
-    
+
     return result
   } else {
     throw new Error(`Unsupported provider: ${provider}`)
@@ -521,7 +520,7 @@ class CommunityAgentsDB {
           "You are a content strategist and UX designer specializing in blog and publishing websites. Analyze this request: {USER_REQUEST}.\n\nDesign a comprehensive content website strategy including:\n1) Content hierarchy and navigation structure\n2) Article layout and reading experience optimization\n3) Author profiles and byline presentation\n4) Categories, tags, and content discovery\n5) Search functionality and content filtering\n6) Newsletter signup and content marketing integration\n\nFocus on reader engagement and content discoverability.",
           "You are a frontend developer experienced in building content-rich websites with optimal reading experiences.\n\nCreate a complete blog/content website as a single HTML file with:\n\nRequirements:\n- Include Tailwind CSS: <script src=\"https://cdn.tailwindcss.com\"></script>\n- Typography optimized for reading (proper line height, spacing)\n- Article grid with featured posts and categories\n- Individual article layouts with sharing buttons\n- Author bio sections and related posts\n- Search functionality with live filtering\n- Newsletter signup with validation\n- Comment system mockup with threading\n- Reading time estimates and progress indicators\n- Dark mode toggle for comfortable reading\n- Include: header, featured posts, article grid, individual post layout, sidebar, footer"
         ],
-        model: "qwen/qwen3-coder",
+        model: "google/gemini-2.5-flash-lite",
         provider: "openrouter",
         tags: ["blog", "content", "articles", "cms"],
         downloads: 723,
@@ -654,27 +653,27 @@ class RequestThrottler {
   async throttledGenerateContent(config: ModelConfig, prompt: string, options: any): Promise<any> {
     const key = `${config.provider}-${config.model}`;
     const now = Date.now();
-    
+
     // Check if we need to add delay between requests for this model
     const lastRequest = this.requestDelays.get(key) || 0;
     const timeSinceLastRequest = now - lastRequest;
     const minDelay = 1000; // 1 second minimum between requests for same model
-    
+
     if (timeSinceLastRequest < minDelay) {
       await new Promise(resolve => setTimeout(resolve, minDelay - timeSinceLastRequest));
     }
-    
+
     // Check concurrent request limit
     const activeCount = this.activeRequests.get(key) || 0;
     if (activeCount >= this.maxConcurrentRequests) {
       // Wait for a slot to become available
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
-    
+
     // Increment active request count
     this.activeRequests.set(key, activeCount + 1);
     this.requestDelays.set(key, Date.now());
-    
+
     try {
       const result = await this.generateContentWithRetry(config, prompt, options);
       return result;
@@ -691,11 +690,11 @@ class RequestThrottler {
         return await generateContent(config, prompt, options);
       } catch (error) {
         console.warn(`Request attempt ${i + 1} failed for ${config.provider}-${config.model}:`, error);
-        
+
         if (i === maxRetries - 1) {
           throw error; // Last attempt failed
         }
-        
+
         // Exponential backoff: 1s, 2s, 4s
         const delay = 1000 * Math.pow(2, i);
         console.log(`Retrying in ${delay}ms...`);
@@ -787,11 +786,13 @@ api.post('/process-sequence/stream', async (c) => {
       })
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().default(''),
-    model: z.string().default('qwen/qwen3-coder'),
+    model: z.string().default('google/gemini-2.5-flash-lite'),
     provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
     images: z.array(z.string()).optional(),
+    openrouterApiKey: z.string().optional(),
+    wavespeedApiKey: z.string().optional(),
     wavespeedConfig: z.object({
       size: z.string().optional(),
       outputFormat: z.string().optional()
@@ -799,7 +800,7 @@ api.post('/process-sequence/stream', async (c) => {
   })
 
   try {
-    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, wavespeedConfig } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, openrouterApiKey, wavespeedApiKey, wavespeedConfig } = ProcessSequenceSchema.parse(body)
     // Set up Server-Sent Events headers
     c.header('Content-Type', 'text/plain; charset=utf-8')
     c.header('Cache-Control', 'no-cache')
@@ -866,6 +867,13 @@ api.post('/process-sequence/stream', async (c) => {
               processedPrompt = `<Context>\n${context}\n</Context>\n\n` + processedPrompt
             }
 
+            // Append HTML generation instruction to the last step if no images
+            const isLastStep = i === prompts.length - 1
+            const hasNoImages = !images || images.length === 0
+            if (isLastStep && hasNoImages) {
+              processedPrompt += '\n\nRespond with the single HTML file now, optimized for iframe rendering:'
+            }
+
             const fullProcessedPrompt = processedPrompt
 
             // Send step start progress
@@ -880,7 +888,7 @@ api.post('/process-sequence/stream', async (c) => {
             safeEnqueue(`data: ${stepStartData}\n\n`);
 
             // enable thinking when model is gemini-2.5-flash or gemini-2.5-pro
-            const thinkingConfig = stepModel === 'qwen/qwen3-coder' ? {
+            const thinkingConfig = stepModel === 'google/gemini-2.5-flash-lite' ? {
               thinking: {
                 includeThoughts: true,
                 thinkingBudget: 1024
@@ -888,20 +896,28 @@ api.post('/process-sequence/stream', async (c) => {
             } : undefined
 
             try {
-              promises.writeFile('processedPrompt_' + i + '.json', processedPrompt)
-              
+              // promises.writeFile('processedPrompt_' + i + '.json', processedPrompt) DEBUG put here to save the prompt
+
+              // Determine which API key to use based on provider
+              let selectedApiKey = apiKey || c.req.header('X-API-Key');
+              if (stepProvider === 'wavespeed' && wavespeedApiKey) {
+                selectedApiKey = wavespeedApiKey;
+              } else if (stepProvider === 'openrouter' && openrouterApiKey) {
+                selectedApiKey = openrouterApiKey;
+              }
+
               const config: any = {
                 provider: stepProvider,
                 model: stepModel,
-                apiKey: apiKey || c.req.header('X-API-Key'),
+                apiKey: selectedApiKey,
                 baseUrl
               }
-              
+
               if (stepProvider === 'wavespeed' && wavespeedConfig) {
                 config.size = wavespeedConfig.size || 'original'
                 config.outputFormat = wavespeedConfig.outputFormat || 'png'
               }
-              
+
               const result = await requestThrottler.throttledGenerateContent(config, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
               let response = ''
@@ -930,7 +946,7 @@ api.post('/process-sequence/stream', async (c) => {
               } else if (stepProvider === 'wavespeed') {
                 // Wavespeed returns a complete result, not a stream
                 const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
-                
+
                 // Create an HTML response with the image
                 response = `<html lang="en">
 <head>
@@ -1140,11 +1156,13 @@ api.post('/process-sequence', async (c) => {
       })
     ])).min(1, 'At least one prompt is required'),
     userRequest: z.string().min(1, 'User request is required'),
-    model: z.string().default('qwen/qwen3-coder'),
+    model: z.string().default('google/gemini-2.5-flash-lite'),
     provider: z.enum(['openrouter', 'wavespeed']).default('openrouter'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional(),
     images: z.array(z.string()).optional(),
+    openrouterApiKey: z.string().optional(),
+    wavespeedApiKey: z.string().optional(),
     wavespeedConfig: z.object({
       size: z.string().optional(),
       outputFormat: z.string().optional()
@@ -1154,7 +1172,7 @@ api.post('/process-sequence', async (c) => {
 
 
   try {
-    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, wavespeedConfig } = ProcessSequenceSchema.parse(body)
+    const { prompts, userRequest, model: modelName, provider: defaultProvider, apiKey, baseUrl, images, openrouterApiKey, wavespeedApiKey, wavespeedConfig } = ProcessSequenceSchema.parse(body)
 
     const results: string[] = []
     const detailedSteps: ProcessStep[] = []
@@ -1178,7 +1196,7 @@ api.post('/process-sequence', async (c) => {
       const fullProcessedPrompt = processedPrompt
 
       // enable thinking when model is gemini-2.5-flash or gemini-2.5-pro
-      const thinkingConfig = stepModel === 'qwen/qwen3-coder' ? {
+      const thinkingConfig = stepModel === 'google/gemini-2.5-flash-lite' ? {
         thinking: {
           includeThoughts: true,
           thinkingBudget: 1024
@@ -1188,18 +1206,26 @@ api.post('/process-sequence', async (c) => {
       console.log(`Making request with model: ${stepModel}, provider: ${stepProvider} and thinkingConfig: ${JSON.stringify(thinkingConfig)}`)
 
       try {
+        // Determine which API key to use based on provider
+        let selectedApiKey = apiKey || c.req.header('X-API-Key');
+        if (stepProvider === 'wavespeed' && wavespeedApiKey) {
+          selectedApiKey = wavespeedApiKey;
+        } else if (stepProvider === 'openrouter' && openrouterApiKey) {
+          selectedApiKey = openrouterApiKey;
+        }
+
         const config: any = {
           provider: stepProvider,
           model: stepModel,
-          apiKey: apiKey || c.req.header('X-API-Key'),
+          apiKey: selectedApiKey,
           baseUrl
         }
-        
+
         if (stepProvider === 'wavespeed' && wavespeedConfig) {
           config.size = wavespeedConfig.size || '1024*1024'
           config.outputFormat = wavespeedConfig.outputFormat || 'png'
         }
-        
+
         const result = await requestThrottler.throttledGenerateContent(config, processedPrompt, { stream: true, thinking: thinkingConfig?.thinking?.includeThoughts, images })
 
         let response = ''
@@ -1215,7 +1241,7 @@ api.post('/process-sequence', async (c) => {
         } else if (stepProvider === 'wavespeed') {
           // Wavespeed returns a complete result, not a stream
           const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
-          
+
           // Create an HTML response with the image
           response = `<!DOCTYPE html>
 <html lang="en">
@@ -1732,59 +1758,70 @@ api.post('/community-agents/:id/rate', async (c) => {
 // Generate agent prompts endpoint
 api.post('/generate-agent-prompts', async (c) => {
   const body = await c.req.json()
-  
+
   const GeneratePromptsSchema = z.object({
     name: z.string().min(1, 'Agent name is required'),
     description: z.string().min(1, 'Agent description is required'),
     apiKey: z.string().optional(),
     baseUrl: z.string().optional()
   })
-  
+
   try {
     const { name, description, apiKey, baseUrl } = GeneratePromptsSchema.parse(body)
-    
-    const prompt = `You are an expert AI agent architect. Based on the following agent name and description, generate a comprehensive prompt sequence (array of prompts) that will enable this agent to accomplish its task.
+
+    const prompt = `You are an expert AI agent architect. Generate a prompt sequence that will enable this agent to accomplish its task.
 
 Agent Name: ${name}
 Agent Description: ${description}
 
+CRITICAL: Understand the execution flow:
+- Prompts execute sequentially
+- The OUTPUT of prompt N is automatically passed as <Context> to prompt N+1
+- Prompt 1 receives only {USER_REQUEST}
+- Prompt 2+ receives: context from previous steps + the prompt text
+- Each prompt should produce CONCRETE output that the next step can use
+
 Your task:
-1. Analyze the agent's purpose from the name and description
-2. Break down the task into logical steps
-3. Create a sequence of prompts (typically 2-4 prompts) that guide the agent through the process
-4. Each prompt should build on the previous one and use {USER_REQUEST} placeholder where the user's actual request will be inserted
+1. Break down the agent's task into MAX 3 logical steps
+2. Design each prompt to produce specific, actionable output
+3. Ensure later prompts explicitly reference and build upon the context from previous steps
 
-Guidelines:
-- Each prompt should be a clear instruction for one step in the process
-- Prompts should use the {USER_REQUEST} placeholder to reference the user's input
-- The sequence should flow logically: planning → design → development → polish (or similar workflow)
-- Include specific technical requirements when relevant (e.g., Tailwind CSS, mobile-first, iframe considerations)
-- Return ONLY a valid JSON array of strings, where each string is a prompt
-- Do NOT include markdown code blocks, just the raw JSON array
+Prompt Design Rules:
+- Use {USER_REQUEST} in the first prompt; later prompts work with context
+- Each prompt should produce concrete output (plan, design spec, code, etc.), not vague instructions
+- Be specific about what to produce: "Generate a JSON structure with..." not "Think about structure"
 
-Example structure:
-[
-  "Step 1: Analysis prompt with {USER_REQUEST}...",
-  "Step 2: Design prompt that references previous step...",
-  "Step 3: Implementation prompt with technical requirements..."
-]
+Technical defaults (include when relevant):
+- Web: Tailwind CSS, mobile-first responsive, single-file HTML
+- Code: Production-ready, clean, well-structured
+- Design: Modern UI/UX, accessibility considerations
+- Append this on tech defaults: "For images, textures, icons, and more in your app, use the vibemedia.space API which creates images on the fly:
 
-Return the JSON array:`
-    
+Format: https://vibemedia.space/[UNIQUE_ID].png?prompt=[DETAILED DESCRIPTION]
+
+Optional Parameters:
+• &removeBackground=true - Remove background automatically (good for icons, sprites, etc.)
+
+IMPORTANT: Use FIXED IDs in your code, not random generators!"
+----------------------------------
+
+Return ONLY a valid JSON array of strings (no markdown blocks):
+["prompt 1 text...", "prompt 2 text..."]`
+
     const config: ModelConfig = {
       provider: 'openrouter',
       model: 'google/gemini-2.5-flash-lite',
       apiKey: apiKey || c.req.header('X-API-Key'),
       baseUrl
     }
-    
+
     const result = await requestThrottler.throttledGenerateContent(config, prompt, { stream: false })
-    
+
     let response = ''
     if (config.provider === 'openrouter') {
       response = result.choices[0].message.content || ''
     }
-    
+
     // Extract JSON array from response (might be wrapped in code blocks)
     let prompts: string[] = []
     try {
@@ -1805,12 +1842,12 @@ Return the JSON array:`
         }
       }
     }
-    
+
     // Validate it's an array of strings
     if (!Array.isArray(prompts) || !prompts.every(p => typeof p === 'string')) {
       throw new Error('Response is not a valid array of strings')
     }
-    
+
     return c.json({
       prompts,
       timestamp: new Date().toISOString()
@@ -1828,7 +1865,7 @@ Return the JSON array:`
 // Image generation endpoint using Wavespeed
 api.post('/generate-image', async (c) => {
   const body = await c.req.json()
-  
+
   const ImageGenerationSchema = z.object({
     prompt: z.string().min(1, 'Prompt is required'),
     model: z.string().min(1, 'Model is required'),
@@ -1838,10 +1875,10 @@ api.post('/generate-image', async (c) => {
     outputFormat: z.string().optional().default('png'),
     images: z.array(z.string()).optional() // for image editing
   })
-  
+
   try {
     const { prompt, model, apiKey, baseUrl, size, outputFormat, images } = ImageGenerationSchema.parse(body)
-    
+
     const config: WavespeedModelConfig = {
       provider: 'wavespeed',
       model,
@@ -1850,13 +1887,13 @@ api.post('/generate-image', async (c) => {
       size,
       outputFormat
     }
-    
+
     const result = await generateImage(config, prompt, { images, size, outputFormat })
-    
+
     // Extract image URL from Wavespeed response structure
     // Wavespeed returns: { code, message, data: { outputs: [...] } }
     const imageUrl = result.data?.outputs?.[0] || result.image_url || result.url || result.data?.url
-    
+
     return c.json({
       imageUrl,
       result,

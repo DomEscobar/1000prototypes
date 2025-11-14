@@ -232,11 +232,11 @@ export function AgentSubmissionModal({ isOpen, onClose, onSuccess }: AgentSubmis
                 <Input
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  placeholder="e.g., anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o"
+                  placeholder="e.g., anthropic/claude-3.5-sonnet, google/gemini-2.5-flash-lite, openai/gpt-4o"
                   className="bg-background border-border"
                 />
                 <p className="text-xs text-muted-foreground">
-                  This model will be used for prompts that don't specify their own model. Popular models: anthropic/claude-3.5-sonnet, qwen/qwen3-coder, openai/gpt-4o, google/gemini-2.5-flash-lite
+                  This model will be used for prompts that don't specify their own model. Popular models: anthropic/claude-3.5-sonnet, google/gemini-2.5-flash-lite, openai/gpt-4o, google/gemini-2.5-flash-lite
                 </p>
               </div>
             </div>
