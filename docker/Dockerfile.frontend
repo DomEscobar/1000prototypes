@@ -10,7 +10,7 @@ COPY package.json package-lock.json ./
 RUN test -f package-lock.json || (echo "ERROR: package-lock.json not found" && exit 1)
 
 # Install dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm i --force
 
 # Copy source code
 COPY . .
