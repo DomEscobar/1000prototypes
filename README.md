@@ -2,9 +2,6 @@
 
 **Run multiple AI agents in parallel to prototype websites and apps**
 
-### Try It Online
-Participate at [1000prototypes.space](https://1000prototypes.space)
-
 Instead of waiting for one AI assistant to build your idea, this tool lets you deploy multiple specialized agents that work on the same request simultaneously. You get different approaches and can pick the best parts from each.
 
 <img src="./public/proto.png">
@@ -22,8 +19,6 @@ This approach is different: set up multiple agents with different specialties, g
 - **Share agents** you've created with the community
 - **Try different AI models** to see which works best for different tasks
 - **Save prototypes** you like to a gallery
-
-The community has built agents for e-commerce sites, portfolios, SaaS landing pages, blogs, interactive experiences, and mobile apps. Check out [1000prototypes.space](https://1000prototypes.space) to see what's possible.
 
 ## Getting Started
 
